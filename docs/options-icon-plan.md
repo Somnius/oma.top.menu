@@ -60,3 +60,8 @@ Panel built from Omarchy's own UI pieces (`Ui/Panel`, `KeyboardPanel`, `ButtonGr
 - `bin/oma-top-menu-hypr-input` tested on a copy of `input.lua`: adds the block, replaces it without duplicating, `--remove` restores the original byte for byte, unique backup per run.
 - A no-op `hyprctl eval` of `follow_mouse = 1` left the keyboard layout (`us,gr`), Caps-toggle options, repeat rate and numlock unchanged, so `hl.config` merges.
 - Not clicked through yet: the panel's controls (they change live system state), tray-drawer placement, several monitors.
+
+## Test log, 2026-11-07 (continued)
+- Workspaces "Left": the first version did nothing when the numbers were already in the left section, because the button group only fires on a change; and a plain `--section left` appends after the menu. Now Left uses `omarchy bar move omarchy.workspaces --before <our id>`, and "left but after the menu" is shown as no selection so clicking Left is a real change. Result on the bar: `1 2 3 4 5`, app icon, menu.
+- Turn 1 (settings through `omarchy bar set <id> <key> <value> [--json]`, one at a time, screenshot each): dividers shown, spacing roomy, spacing compact, app icon hidden, generic menu hidden all change the strip as intended; reset to defaults afterwards. `omarchy bar set` writes only the left entry, while the panel's buttons write through `updateEntryInline` (all entries), so use the panel for a consistent state.
+- Turn 2 (panel buttons) is run with Lef clicking and a watcher recording `follow_mouse`, `input.lua`, workspace position and settings.

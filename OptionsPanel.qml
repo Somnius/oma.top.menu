@@ -24,6 +24,7 @@ Panel {
   property string followMouse: ""
   property string workspaceSection: ""
   property int menuLeftIndex: -1
+  property int workspaceIndex: -1
   property string note: ""
 
   function open() { root.controller.show(); root.refresh() }
@@ -69,8 +70,10 @@ Panel {
     if (["left", "center", "right"].indexOf(section) < 0) return
     // Left goes just before the menu strip, middle and right go at the start
     // of their section; without an index the bar appends at the end.
-    var index = section === "left" && root.menuLeftIndex >= 0 ? root.menuLeftIndex : 0
-    mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--section", section, "--index", String(index)]
+    if (section === "left" && root.menuLeftIndex >= 0)
+      mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--before", root.moduleName]
+    else
+      mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--section", section, "--index", "0"]
     mover.targetSection = section
     mover.running = true
   }
@@ -92,7 +95,7 @@ Panel {
       "for s,l in d.get('bar',{}).get('layout',{}).items():\n" +
       "    for i,e in enumerate(l):\n" +
       "        n=e.get('id') if isinstance(e,dict) else e\n" +
-      "        if n=='omarchy.workspaces': print('ws', s)\n" +
+      "        if n=='omarchy.workspaces': print('ws', s, i)\n" +
       "        if n=='" + root.moduleName + "' and s=='left': print('menu', i)\n"]
     stdout: StdioCollector {
       waitForEnd: true
@@ -102,9 +105,16 @@ Panel {
         root.menuLeftIndex = -1
         for (var i = 0; i < lines.length; i++) {
           var parts = lines[i].split(" ")
-          if (parts[0] === "ws") root.workspaceSection = parts[1].indexOf("center") === 0 ? "center" : parts[1]
+          if (parts[0] === "ws") { root.workspaceSection = parts[1]; root.workspaceIndex = parseInt(parts[2]) }
           else if (parts[0] === "menu") root.menuLeftIndex = parseInt(parts[1])
         }
+        // "Left" means just before the menu strip. Left but after it, or in a
+        // centre sub-section, is shown accordingly so that clicking the
+        // intended option is a real change.
+        if (root.workspaceSection === "left" && root.menuLeftIndex >= 0 && root.workspaceIndex > root.menuLeftIndex)
+          root.workspaceSection = "left-after"
+        else if (root.workspaceSection.indexOf("center") === 0)
+          root.workspaceSection = "center"
       }
     }
   }
