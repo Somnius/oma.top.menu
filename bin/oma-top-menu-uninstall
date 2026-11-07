@@ -27,6 +27,21 @@ SHELL_JSON = CONFIG / "omarchy" / "shell.json"
 HELPER = Path(__file__).resolve().parent / "oma-top-menu-hypr-input"
 
 
+def write_atomically(path, text):
+    """Write next to the target and rename over it, keeping the file mode, so a
+    crash or a full disk can never leave a half-written shell.json."""
+    mode = path.stat().st_mode & 0o777
+    json.loads(text)  # refuse to write anything that is not valid JSON
+    tmp = path.with_name(f".{path.name}.oma-top-menu.tmp")
+    try:
+        tmp.write_text(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
 def entry_id(entry):
     return entry.get("id") if isinstance(entry, dict) else entry
 
@@ -62,7 +77,7 @@ def main(argv):
             layout[section] = [e for e in entries if entry_id(e) != PLUGIN_ID]
         if "plugins" in config:
             config["plugins"] = [e for e in config["plugins"] if entry_id(e) != PLUGIN_ID]
-        SHELL_JSON.write_text(json.dumps(config, indent=2) + "\n")
+        write_atomically(SHELL_JSON, json.dumps(config, indent=2) + "\n")
         print(f"shell.json cleaned; backup {backup.name}")
     if block and HELPER.exists():
         subprocess.run([sys.executable, str(HELPER), "follow_mouse", "--remove"], check=False)

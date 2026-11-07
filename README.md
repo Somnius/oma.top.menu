@@ -27,6 +27,10 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 
 ![Options panel](docs/screenshots/options-panel.png)
 
+The optional options icon sits next to the tray chevron:
+
+![The optional options icon next to the tray](docs/screenshots/options-icon.png)
+
 - **Focus behaviour**: *System* (leave your Hyprland setting alone), Hover, Click or Off. Hover is Omarchy's default and moves focus as the pointer crosses windows, so a menu changes on the way to the bar; Click keeps the menu of the window you clicked. The choice is a setting of this widget (kept in `shell.json`) and the plugin applies it with `hyprctl`, again after every Hyprland reload. **No Hyprland file is edited**, and removing the plugin ends it (your own value returns at the next reload).
 - **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces ...` when you click it.
 - **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`.

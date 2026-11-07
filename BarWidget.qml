@@ -177,7 +177,9 @@ BarWidget {
     target: root.menuService
     ignoreUnknownSignals: true
     function onIpcRequest(action) {
-      if (root.optionsRole || !root.monitor || !root.monitor.focused) return
+      if (!root.monitor || !root.monitor.focused) return
+      if (action === "options") { root.openOptions(); return }
+      if (root.optionsRole) return
       if (action === "open") root.open()
       else if (action === "close") root.close()
       else if (action === "toggle") root.toggle()

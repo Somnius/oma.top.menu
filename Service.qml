@@ -53,6 +53,7 @@ Item {
     function open(): void { root.ipcRequest("open") }
     function close(): void { root.ipcRequest("close") }
     function toggle(): void { root.ipcRequest("toggle") }
+    function options(): void { root.ipcRequest("options") }
   }
 
   // A Hyprland config reload resets the value, so apply it again.
