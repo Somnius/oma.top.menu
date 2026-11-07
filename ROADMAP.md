@@ -16,6 +16,7 @@ Updated at the end of every phase. One push per phase.
 | 5 | List on plugins.omarchy.org, release | todo |
 
 ## Checklist
+- [ ] Marketplace submission only when Lef says so (he wants it polished first)
 - [ ] Ask Lef before moving focus, launching apps or other desktop control
 - [ ] README tech-stack pills (Lef supplies them)
 - [x] Licence: root is GPL-2.0 because primo's repo ships GPL-2.0 (its catalog entry says MIT)
