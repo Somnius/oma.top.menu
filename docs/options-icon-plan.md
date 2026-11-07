@@ -15,12 +15,24 @@ Request (Lef): an Oma Top Menu icon in the right-hand area of the bar, next to t
 - Whether `omarchy plugin enable` or the bar editor can place a second entry (`{"id": "...", "role": "options"}`) in `bar.layout.right`.
 - Whether there is a supported way to put a widget into the tray/overflow area, or only into the `right` section next to it.
 
+## Added requests (Lef, 2026-11-07)
+- Workspace numbers: choose left, middle or right.
+- Dividers between menu entries: shown or hidden.
+- Spacing: smaller or larger (compact, normal, roomy).
+
+Extra verified facts:
+- Bar sections are `left`, `centerBegin`, `center`, `centerEnd`, `right` (`Bar.qml`). The bar already supports dragging a widget between sections.
+- The plugin-facing shell API (`services/PluginShellApi.qml`) exposes `mutateShellConfig(mutator)`, backed by `shell.mutatePluginBarConfig` and gated by `hasCurrentBarCapabilities()`; the bar itself uses `BarModel.moveEntry(config, move, ...)` inside `mutateShellConfig` to move an entry. Unknown: whether a plugin may move another widget's entry (`omarchy.workspaces`), and the exact `move` object format.
+
 ## Proposed design
 1. Same plugin, `allowMultiple: true`, new schema field `role` (enum `menu` | `options`, default `menu`). Role `options` renders only an icon button (our own SVG, `assets/icon.svg`, themed with the bar foreground) that opens a panel; role `menu` is today's strip.
 2. If a second instance cannot be keyed per entry: fall back to a small gear at the left end of the menu strip, or a second tiny plugin. Decide after the test.
 3. Panel contents, v1:
    - Status: daemon running or error (from the service), focused app, menu source (at-spi / fallback).
    - Focus behaviour: segmented control Hover (1) / Click (2) / Off (0), showing the live value from `hyprctl getoption input:follow_mouse`. Choosing applies live with `hyprctl eval` (a change Lef asks for by clicking). A separate button "Save to ~/.config/hypr/input.lua" writes the line with a timestamped backup and shows the exact change first. The plugin never edits Hyprland config without that click (marketplace checklist: no overwriting user config without explicit consent).
+   - Workspace numbers: Left / Middle / Right, applied by moving the `omarchy.workspaces` entry through `mutateShellConfig` (only on click; the bar's own drag-and-drop does the same thing).
+   - Dividers between menu entries: Show / Hide (a setting read by the widget).
+   - Spacing: Compact / Normal / Roomy (a setting that scales the entry padding).
    - Show app icon (on/off), Show generic menu for apps without a menu bar (on/off), Restart daemon.
 4. Settings live in the widget's shell.json entry (`defaults` + `schema`), so Omarchy's own bar settings editor also lists them.
 5. The README documents the panel; screenshots added.
