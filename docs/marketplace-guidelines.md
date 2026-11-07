@@ -26,5 +26,5 @@ Source: https://plugins.omarchy.org/publish.html and /develop.html (read in full
 2. primo.global-menu is listed as "Manual setup" (`installAvailable: false`) because its daemon needs symlinks and a systemd unit. A listing that installs cleanly should start and stop its daemon from the plugin itself (a service kind or a Process in the widget), with no symlinks, no files outside its folder, and no systemd step.
 3. primo's optional `~/.config/environment.d` a11y file and its writing of `IsEnabled` are changes outside the plugin; the AT-SPI side effect must be documented in the README and be reversible on removal.
 4. Pick a namespaced id (not `omarchy.*`), e.g. `<author>.top-menu`. Not decided.
-5. Licence: primo's repo ships GPL-2.0, so our fork is GPL-2.0 (root LICENSE). GPL-3.0 code from the GNOME extension cannot be mixed into GPL-2.0-only code.
+5. Licence: primo's repo ships GPL-2.0, so our fork is GPL-2.0 (root LICENSE). No code or data from the GNOME extension (GPL-3.0) is used, so there is nothing to mix; it is credited as inspiration only.
 6. Fill in a preview image, category and tags for the listing.

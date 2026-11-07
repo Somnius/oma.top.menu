@@ -17,7 +17,7 @@ Updated at the end of every phase. One push per phase.
 | 2h | Plain-text hardening (every Text, sanitized and bounded snapshots, argument-list launches), translations (English catalog), rebuild of lazy menus after a click, history rewritten to remove old screenshots | done (2026-11-07); lazy-menu rebuild unit-tested, not yet seen live |
 | 2i | Marketplace dry run with the marketplace's own scripts (commit 56481dc): validation passes; security baseline `review-required`, 0 findings, one capability (`installer`: the optional uninstall helper) | done; submission text drafted, NOT posted (waiting for Lef) |
 | 3 | Fork decision: forked from primo.global-menu | done |
-| 4 | Shortcut-profile fallback for apps with no menu bar and for lazy Firefox menus (the GNOME extension's profiles are GPL-3.0: a licence decision for Lef) | not started |
+| 4 | Own shortcut-profile fallback for apps with no menu bar and for lazy Firefox menus (written here; nothing is taken from the GNOME extension, whose licence therefore does not apply) | not started |
 | 5 | List on plugins.omarchy.org, release | waiting for Lef's go (text drafted in .work/drafts) |
 
 ## Checklist
@@ -25,6 +25,6 @@ Updated at the end of every phase. One push per phase.
 - [ ] Ask Lef before moving focus, launching apps or other desktop control
 - [ ] README tech-stack pills (Lef supplies them)
 - [x] Licence: root is GPL-2.0 because primo's repo ships GPL-2.0 (its catalog entry says MIT)
-- [ ] Shortcut profiles: decide on the licence question (GPL-3.0 profiles vs the GPL-2.0 plugin) before reusing anything
+- [x] GNOME extension: inspiration only, no code or data copied, so its GPL-3.0 does not apply (Lef, 2026-11-07)
 - [ ] Credit primo.global-menu (PrimoGameStudio) if we fork it
 - [ ] Keep the credit to Unmade760 in the README and listing

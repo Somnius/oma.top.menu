@@ -21,7 +21,7 @@ and show the workspace indicators on the right.
 - What does Ghostty expose? (not installed here yet)
 - CPU/memory cost of keeping AT-SPI always on.
 - Can a plugin install and start its own user systemd unit, or must that be a manual step? (primo's catalog status is "Manual setup")
-- Reuse of the GNOME extension's shortcut profiles: licence (GPL-3.0) and format not checked.
+- Shortcut-profile menus (for apps with no menu bar and for lazy Firefox menus) would be the plugin's own data; none of the GNOME extension's code or profiles is used.
 
 ## Non-goals (for now)
 Replacing the whole bar, other compositors, non-Omarchy setups.
