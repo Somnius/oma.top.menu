@@ -28,13 +28,21 @@ Item {
     root.applyFollowMouse()
   }
 
+  property bool followPending: false
+
   function applyFollowMouse() {
-    if (root.followMouse === "" || followProcess.running) return
+    if (root.followMouse === "") return
+    if (followProcess.running) { root.followPending = true; return }
     followProcess.command = ["hyprctl", "eval", "hl.config({ input = { follow_mouse = " + root.followMouse + " } })"]
     followProcess.running = true
   }
 
-  Process { id: followProcess }
+  Process {
+    id: followProcess
+    onExited: function(exitCode) {
+      if (root.followPending) { root.followPending = false; root.applyFollowMouse() }
+    }
+  }
 
   // One IPC handler for the whole shell (every monitor's widget would
   // otherwise register the same target); the focused monitor's strip answers.

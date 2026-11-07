@@ -263,3 +263,34 @@ class FrameMatchTest(unittest.TestCase):
     def test_single_window_needs_no_disambiguation(self):
         one = FakeAcc("ATSPI_ROLE_APPLICATION", "Floorp", [FakeAcc("ATSPI_ROLE_FRAME", "Only", [self.bar_a])])
         self.assertIsNone(self.extractor("Only")._frame_menubar(one))
+
+
+class PlanMonitorsPopupTest(unittest.TestCase):
+    def test_popup_does_not_keep_a_window_that_moved_to_another_workspace(self):
+        popup = client("0xp", 1, "org.quickshell", title="")
+        moved = client("0xa", 7, "floorp")          # was on ws 1, now on ws 7
+        other = client("0xz", 1, "dino")
+        plan = bridge.plan_monitors([mon("DP-1", 1, True)], [{"id": 1, "lastwindow": "0xp"}],
+                                    [popup, moved, other], popup, {"DP-1": client("0xa", 1, "floorp")})
+        self.assertEqual(plan["DP-1"]["address"], "0xz")
+
+    def test_unfocused_monitor_keeps_its_last_real_app_when_lastwindow_is_a_popup(self):
+        popup = client("0xp", 11, "org.quickshell", title="")
+        real = client("0xb", 11, "files")
+        spare = client("0xc", 11, "dino", focusHistoryID=1)
+        plan = bridge.plan_monitors([mon("DP-1", 1, True), mon("DP-2", 11)],
+                                    [{"id": 1, "lastwindow": "0xa"}, {"id": 11, "lastwindow": "0xp"}],
+                                    [client("0xa", 1), popup, real, spare], client("0xa", 1), {"DP-2": real})
+        self.assertEqual(plan["DP-2"]["address"], "0xb")
+
+
+class FrameSpecificityTest(unittest.TestCase):
+    def test_longest_matching_frame_name_wins(self):
+        bar_short = FakeAcc("ATSPI_ROLE_MENU_BAR", "short", [FakeAcc("ATSPI_ROLE_MENU", "File")])
+        bar_long = FakeAcc("ATSPI_ROLE_MENU_BAR", "long", [FakeAcc("ATSPI_ROLE_MENU", "File")])
+        app = FakeAcc("ATSPI_ROLE_APPLICATION", "App", [
+            FakeAcc("ATSPI_ROLE_FRAME", "Notes", [bar_short]),
+            FakeAcc("ATSPI_ROLE_FRAME", "Notes for the garden", [bar_long]),
+        ])
+        ex = bridge.AtspiMenuExtractor(1, "App", "0x1", "app", "Notes for the garden - App")
+        self.assertIs(ex._frame_menubar(app), bar_long)

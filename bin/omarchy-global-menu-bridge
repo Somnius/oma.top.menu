@@ -1198,6 +1198,8 @@ class AtspiMenuExtractor:
         exact = [f for f in frames if self._norm(self._name(f)) == want]
         loose = [f for f in frames if len(self._norm(self._name(f))) >= 4
                  and (self._norm(self._name(f)) in want or want in self._norm(self._name(f)))]
+        # The longest frame name is the most specific match for this title.
+        loose.sort(key=lambda f: -len(self._norm(self._name(f))))
         for frame in (exact or loose):
             menubar = self._walk_for_menubar(frame)
             if menubar:
@@ -2189,24 +2191,29 @@ def plan_monitors(monitors, workspaces, clients, active, previous=None):
             continue
         special = (mon.get("specialWorkspace") or {}).get("id") or 0
         ws_id = special or (mon.get("activeWorkspace") or {}).get("id")
+        def still_here(candidate):
+            current = by_addr.get((candidate or {}).get("address"))
+            return current if (current and (current.get("workspace") or {}).get("id") == ws_id
+                               and _is_candidate(current)) else None
+
         win = None
+        shell_has_focus = bool(mon.get("focused") and active and is_shell_window(active))
         if mon.get("focused") and active:
             active_ws = (active.get("workspace") or {}).get("id")
-            if active_ws == ws_id or not active_ws:
-                if _is_candidate(active):
-                    win = by_addr.get(active.get("address")) or active
-                elif is_shell_window(active):
-                    win = previous.get(name)
-                    if win is not None and win.get("address") not in by_addr:
-                        win = None
-        if win is None and not (mon.get("focused") and active and is_shell_window(active)):
+            if (active_ws == ws_id or not active_ws) and _is_candidate(active):
+                win = by_addr.get(active.get("address")) or active
+        if win is None and shell_has_focus:
+            win = still_here(previous.get(name))   # a popup keeps this monitor's last real window
+        if win is None:
             last = by_addr.get((ws_by_id.get(ws_id) or {}).get("lastwindow"))
             if last and (last.get("workspace") or {}).get("id") == ws_id and _is_candidate(last):
                 win = last
             else:
-                on_ws = [c for c in clients if (c.get("workspace") or {}).get("id") == ws_id and _is_candidate(c)]
-                on_ws.sort(key=lambda c: c.get("focusHistoryID", 1 << 30))
-                win = on_ws[0] if on_ws else None
+                win = still_here(previous.get(name))   # lastwindow is a popup or gone: keep what we showed
+                if win is None:
+                    on_ws = [c for c in clients if (c.get("workspace") or {}).get("id") == ws_id and _is_candidate(c)]
+                    on_ws.sort(key=lambda c: c.get("focusHistoryID", 1 << 30))
+                    win = on_ws[0] if on_ws else None
         plan[name] = win
     return plan
 
@@ -2273,7 +2280,7 @@ class MenuState:
             entry = self.cache.get(address)
             new_focus = name == focused and address != self.last_focused
             age = time.monotonic() - entry["built"] if entry else None
-            if entry is None or address in self.dirty or (new_focus and age > 1.0) or age > 600:
+            if entry is None or address in self.dirty or (new_focus and age > 1.0) or age > 120:
                 snap = SnapshotBuilder(win).build()
                 namespace_ids(snap, address)
                 entry = {"snapshot": snap, "built": time.monotonic()}

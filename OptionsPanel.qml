@@ -181,7 +181,7 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "Hover moves focus as the pointer crosses windows, so a menu changes on the way to the bar. Click keeps the menu of the window you clicked. Kept in this widget's settings and applied by the plugin (nothing is written to your Hyprland files); removing the plugin ends it."
+          text: "Hover moves focus as the pointer crosses windows, so a menu changes on the way to the bar. Click keeps the menu of the window you clicked. Kept in this widget's settings and applied by the plugin (nothing is written to your Hyprland files); if you remove the plugin, your own setting returns at the next Hyprland reload."
         }
 
         PanelSectionHeader { text: "Workspace numbers"; foreground: root.barForeground }
