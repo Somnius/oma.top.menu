@@ -14,9 +14,15 @@ Not part of Omarchy's documented plugin reference as far as I checked: the bar f
 Run `python3 tests/check_shell_api.py` (greps the installed shell for every name above and runs the two commands) and `python3 -m unittest discover -s tests`. CI runs the unit tests, a compile check and a manifest check on every push.
 
 ## Failure handling (tested)
-- The menu daemon is restarted by the service after `kill -9` and after SIGTERM; after five quick exits in a row it stops and the bar shows a message.
+- The menu daemon is restarted by the service after `kill -9` and after SIGTERM (both tested on 2026-11-07); after six quick exits in a row it stops and the bar shows a message.
 - If python-gobject or AT-SPI is missing, the service says so in the bar instead of staying blank (logic present; not exercised by a real missing package).
-- The daemon exits with its parent and removes its state files; a lock in `$XDG_RUNTIME_DIR` keeps a second copy from starting.
+- The daemon checks its parent every loop and exits when it changes (tested by killing the parent), and on SIGTERM it removes `active.json` and `request.json` (`status.json` and the folder stay, `bin/oma-top-menu-uninstall` removes them). A lock in `$XDG_RUNTIME_DIR` keeps a second copy from starting.
+
+## Removing the plugin
+`omarchy plugin remove` disables the plugin and deletes its folder, but Omarchy's disable deletes only the first bar entry with the plugin id, so the options-icon copy would stay in `shell.json`; the saved `input.lua` block and the state folder also stay. Run `bin/oma-top-menu-uninstall` first (dry run by default, `--apply` to clean, with a `shell.json` backup), then `omarchy plugin remove`. Tested against a temp config. What the bar draws for an entry whose plugin is gone is not verified.
+
+## Not covered by tests
+CI (Python 3.12) runs a compile check, a manifest check and unit tests of pure functions only: no Hyprland, QML, AT-SPI or PyGObject. `tests/check_shell_api.py` checks that names exist and two commands run; it cannot detect a changed signature or changed behaviour. The update, restart and kill tests above were run by hand, not automated. A change in at-spi2-core's accessibility semantics would silently fall back to the generic menu; there is no self-check for that yet.
 
 ## Known risks
 - A new Hyprland config format or renamed `follow_mouse` option would break the Focus behaviour control (the other controls would keep working). The saved block is plain Lua in `input.lua`, marked so it can be removed by hand.

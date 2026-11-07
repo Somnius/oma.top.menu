@@ -45,6 +45,8 @@ omarchy plugin add https://github.com/Somnius/oma.top.menu
 Then add the widget to the left side of your bar. To also move the workspace numbers to the right, edit `~/.config/omarchy/shell.json`: take `omarchy.workspaces` out of `bar.layout.left` and put it in `bar.layout.right`. The plugin never edits `shell.json` for you.
 
 ## Remove
+Run `bin/oma-top-menu-uninstall` first (it shows what it would clean; `--apply` does it). Omarchy's own removal leaves the options-icon entry, the saved `input.lua` block and the state folder behind. Then:
+
 Take `com.lefteros.somnius.oma-top-menu` out of `~/.config/omarchy/shell.json`, then `omarchy plugin remove com.lefteros.somnius.oma-top-menu` (or delete `~/.config/omarchy/plugins/com.lefteros.somnius.oma-top-menu`). The service stops with the plugin and removes its files in `~/.local/state/omarchy/oma-top-menu`.
 
 ## Recommended: focus on click, not on hover

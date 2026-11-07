@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Clean up what `omarchy plugin remove` leaves behind for Oma Top Menu.
+
+Run it BEFORE `omarchy plugin remove com.lefteros.somnius.oma-top-menu`
+(removal deletes this script). Nothing is changed without you running it.
+
+  oma-top-menu-uninstall            show what would be cleaned
+  oma-top-menu-uninstall --apply    do it (a backup of shell.json is made first)
+
+It removes: every bar entry with the plugin id (Omarchy's disable deletes only
+the first one, so the options-icon copy would stay), the saved Hyprland block
+in input.lua (via oma-top-menu-hypr-input --remove), and the state directory.
+"""
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+PLUGIN_ID = "com.lefteros.somnius.oma-top-menu"
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config"))
+STATE = Path(os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local/state")) / "omarchy" / "oma-top-menu"
+SHELL_JSON = CONFIG / "omarchy" / "shell.json"
+HELPER = Path(__file__).resolve().parent / "oma-top-menu-hypr-input"
+
+
+def entry_id(entry):
+    return entry.get("id") if isinstance(entry, dict) else entry
+
+
+def main(argv):
+    apply = "--apply" in argv
+    try:
+        config = json.loads(SHELL_JSON.read_text())
+    except (OSError, ValueError) as exc:
+        print(f"cannot read {SHELL_JSON}: {exc}", file=sys.stderr)
+        return 1
+    found = []
+    layout = config.get("bar", {}).get("layout", {})
+    for section, entries in layout.items():
+        for entry in entries:
+            if entry_id(entry) == PLUGIN_ID:
+                found.append(section)
+    plugins = [e for e in config.get("plugins", []) if entry_id(e) == PLUGIN_ID]
+    print(f"bar entries: {found or 'none'}; plugins[] records: {len(plugins)}")
+    block = False
+    try:
+        block = "oma-top-menu: begin" in (CONFIG / "hypr" / "input.lua").read_text()
+    except OSError:
+        pass
+    print(f"input.lua block: {'present' if block else 'none'}; state dir: {'present' if STATE.exists() else 'none'}")
+    if not apply:
+        print("dry run; add --apply to clean up")
+        return 0
+    if found or plugins:
+        backup = SHELL_JSON.with_name(f"shell.json.bak-oma-top-menu-{time.strftime('%Y%m%d-%H%M%S')}")
+        shutil.copy2(SHELL_JSON, backup)
+        for section, entries in layout.items():
+            layout[section] = [e for e in entries if entry_id(e) != PLUGIN_ID]
+        if "plugins" in config:
+            config["plugins"] = [e for e in config["plugins"] if entry_id(e) != PLUGIN_ID]
+        SHELL_JSON.write_text(json.dumps(config, indent=2) + "\n")
+        print(f"shell.json cleaned; backup {backup.name}")
+    if block and HELPER.exists():
+        subprocess.run([sys.executable, str(HELPER), "follow_mouse", "--remove"], check=False)
+    if STATE.exists():
+        shutil.rmtree(STATE, ignore_errors=True)
+        print("state dir removed")
+    print("done; now run: omarchy plugin remove " + PLUGIN_ID)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

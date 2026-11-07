@@ -16,21 +16,24 @@ UI_FILES = ["BarWidget", "Panel", "KeyboardPanel", "PanelKeyCatcher", "PanelSect
             "ButtonGroup", "Button", "WidgetButton", "BorderSurface"]
 # (description, regex that must match somewhere under the shell source)
 SYMBOLS = [
-    ("bar requestPopout", r"function requestPopout"),
-    ("bar releasePopout", r"function releasePopout"),
+    ("bar requestPopout(owner)", r"function requestPopout\(\w+\)"),
+    ("bar releasePopout(owner)", r"function releasePopout\(\w+\)"),
     ("bar activePopout", r"activePopout"),
     ("bar switchPanelFrom", r"switchPanelFrom"),
-    ("shell serviceFor", r"function serviceFor"),
-    ("shell updateEntryInline", r"function updateEntryInline"),
+    ("shell serviceFor(pluginId)", r"function serviceFor\(pluginId\)"),
+    ("shell updateEntryInline(moduleName, settings)", r"function updateEntryInline\((moduleName|id), settings\)"),
     ("widget fixedEdge", r"property string fixedEdge"),
     ("WidgetButton hasVisualContent", r"property bool hasVisualContent"),
     ("manifest barWidget defaults/schema", r"meta\.schema"),
     ("manifest allowMultiple", r"allowMultiple"),
     ("Style.bar.iconSlot", r"iconSlot"),
-    ("Style.font.caption", r"caption"),
+    ("Style.font.caption", r"property (real|int) caption"),
     ("Color.menu.selectedText", r"selectedText"),
 ]
-CLI = [["omarchy", "bar", "move", "--help"], ["hyprctl", "getoption", "input:follow_mouse"]]
+CLI = [["omarchy", "bar", "move", "--help"]]
+import os
+if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+    CLI.append(["hyprctl", "getoption", "input:follow_mouse"])
 
 
 def main():
