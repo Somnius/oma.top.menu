@@ -19,7 +19,7 @@ Sources: docs/marketplace-guidelines.md plus omacom/omarchy-plugin-marketplace S
 
 ## Proposed design
 1. Layout: `git mv` the contents of `plugin/` to the repo root so `manifest.json` is at the root. Licence: primo's LICENSE file is GPL-2.0 (catalog/manifest claim MIT), so the root LICENSE is now GPL-2.0 and the manifest says GPL-2.0-only.
-2. New id (permanent, unique): proposal `io.github.somnius.top-menu`. Not decided; needs Lef and a marketplace search.
+2. New id (permanent, unique): proposal `com.lefteros.somnius.oma-top-menu` (chosen by Lef; a search of the 6380-plugin catalog found no id containing lefteros, somnius or oma-top).
 3. Daemon lifecycle: the plugin starts and stops the bridge itself (a Quickshell `Process` in the bar widget or a `service` kind) with `/usr/bin/python3`; no systemd unit, no symlinks, no `environment.d`, no files outside the plugin folder and `$XDG_RUNTIME_DIR` / the state dir. Must be tested: child dies when the widget is removed, the plugin is disabled, or the shell restarts. Open: whether a manifest can declare two kinds (bar-widget + service) and whether a service runs independently of the bar position.
 4. Failure visibility: if `gi`/Atspi is missing or the daemon dies, the widget shows a clear message instead of an empty bar.
 5. Removal: stopping the daemon ends AT-SPI always-on (`IsEnabled` goes back to false, verified). Remove the state dir on exit. README documents both.
@@ -41,3 +41,25 @@ Sources: docs/marketplace-guidelines.md plus omacom/omarchy-plugin-marketplace S
 - Found and fixed: a committed `__pycache__/*.pyc` (now ignored and removed) and the licence mismatch above (root LICENSE was MIT, wrong for a GPL-2.0 derivative).
 - Still open: can one manifest declare bar-widget + service, and does a service outlive the bar widget; does a bar widget's long-lived `Process` pass review; `python-gobject` is a documented external dependency, not installed by `omarchy plugin add`; cleanup of `~/.local/state/omarchy/global-menu` on exit; the bridge never writes `IsEnabled=false` (that it clears when the daemon exits was observed once, not re-checked).
 - Category/tags proposal: Desktop (or Widgets); tags `bar`, `hyprland`.
+
+## Answers to the open questions (research, 2026-11-07)
+
+### 1. Can one manifest declare bar-widget + service, and does a service outlive the widget?
+Verified in Omarchy's source (`/usr/share/omarchy/shell`):
+- Multiple kinds are supported: first-party `omarchy.media` is `service` + `bar-widget`, `omarchy.menu` is `menu` + `bar-widget` (`plugins/README.md`).
+- `PluginRegistry.qml`: a plugin is "enabled" when its id is referenced in shell.json: in `bar.layout.*` (bar widgets) or in `plugins[]` (panels, overlays, services). A widget that also carries a non-bar kind "can hold both a bar.layout entry and a plugins[] record" (comment near line 548).
+- Unknown (not tested): whether a third-party `service` mounts at shell start when only the widget is in `bar.layout`, and what happens to the service when the bar entry is removed.
+- Consequence: a single `bar-widget` kind that owns its daemon through a `Process` avoids the question entirely. The daemon then lives exactly as long as the widget.
+
+### 2. Do other listed plugins run a helper from a bar widget?
+Yes. Verified in source (marketplace "Available", verified, root-plugin repos):
+- `io.github.woogy7.vitals` (kind bar-widget): `Panel.qml` runs `python3 collector.py --interval N`, a Python script shipped in the plugin, streamed via `SplitParser`. Its README says it uses the standard library only.
+- `io.github.ilyazar.syncthing` (bar-widget): `shared/CoreProcess.qml` runs a long-lived streaming child (`coreProcess`, `running:` bound to a desired state, stdin enabled).
+- Also present locally: `omamail`, `drives`, `io.github.bscott.cliamp` (service) use SplitParser streams.
+- JEV triage (Noul "starts a long-running helper from QML"): of 7 candidates with process blocks, top score 0.39 (bambu-companion), so JEV did not find a clear positive here. That is a weak signal on short regex excerpts, not evidence; the evidence above is from reading the source. JEV was run on 7 requests with public source excerpts.
+- Not found in the sample: a listed plugin whose helper needs `python-gobject`/AT-SPI. Vitals uses the standard library only.
+
+### 3. python-gobject
+- Verified on this machine: `python-gobject` 3.58.1 is "Explicitly installed" and required by faugus-launcher, flatpak, lutris, nautilus-python, superwhisper-bin, system-config-printer, udiskie, virt-install. None of the `omarchy*` packages depends on it. at-spi2-core 2.62.1 is installed as a dependency.
+- So it must be documented as an external dependency and the widget must show a clear message when it is missing (the earlier crash was silent).
+- A venv would not help: PyGObject needs the system GObject-Introspection typelibs and the session's AT-SPI bus, which a venv does not provide. A container would not have this session's accessibility bus either. Nothing needs installing here: it is already present. A clean-container check of only the "dependency missing" message is possible but not done.
