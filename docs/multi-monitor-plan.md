@@ -23,3 +23,10 @@ Panel: shows each monitor's current app in the status line.
 - Unit tests for `plan_monitors` (single monitor, two monitors, empty workspace, shell window, special workspace).
 - Emulated monitor: create a headless output, put a different app on its workspace, check each bar shows its own menu, move focus between monitors, close the app, remove the output; check no orphan processes and that the bar returns to normal.
 - Check the daemon still runs once, and CPU is low with two monitors.
+
+## Results and decisions (2026-11-07)
+- Built as designed: `plan_monitors` (pure, 11 tests), `MenuState` (per-window cache, focused monitor built and published first, final publish always), events `activewindow`, `focusedmon`, `workspace`, `moveworkspace`, `activespecial`, `openwindow`, `closewindow`, `movewindow`, monitor add/remove, workspace create/destroy. Each bar finds its monitor with `Hyprland.monitorFor(QsWindow.window.screen)` (the pattern Omarchy's workspace widget uses).
+- Virtual monitor test (`hyprctl output create headless`): each bar showed its own window's menu at the same time, also while focus moved; closing a window cleared that monitor's menu; removing the monitor returned to normal; one daemon; idle CPU about 0.6%.
+- Bugs found by the test and fixed: no republish when a monitor's window went away; the daemon crashed after my rewrite deleted the lock function (now covered by tests and an undefined-name check); duplicate IPC handler per monitor (moved to the service).
+- Review fixes: most specific frame match, a popup keeps a still-valid window, queued follow-mouse apply, cache bound 120 s.
+- Open: two windows of one app on two monitors (frame matching only unit-tested with stubs), a menu click on the monitor that does not have focus, a physical second monitor.
