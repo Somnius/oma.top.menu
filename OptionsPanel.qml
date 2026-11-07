@@ -23,6 +23,7 @@ Panel {
 
   property string followMouse: ""
   property string workspaceSection: ""
+  property int menuLeftIndex: -1
   property string note: ""
 
   function open() { root.controller.show(); root.refresh() }
@@ -66,7 +67,10 @@ Panel {
 
   function moveWorkspaces(section) {
     if (["left", "center", "right"].indexOf(section) < 0) return
-    mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--section", section]
+    // Left goes just before the menu strip, middle and right go at the start
+    // of their section; without an index the bar appends at the end.
+    var index = section === "left" && root.menuLeftIndex >= 0 ? root.menuLeftIndex : 0
+    mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--section", section, "--index", String(index)]
     mover.targetSection = section
     mover.running = true
   }
@@ -86,11 +90,22 @@ Panel {
       "import json,os\n" +
       "d=json.load(open(os.path.expanduser('~/.config/omarchy/shell.json')))\n" +
       "for s,l in d.get('bar',{}).get('layout',{}).items():\n" +
-      "    for e in l:\n" +
-      "        if (e.get('id') if isinstance(e,dict) else e)=='omarchy.workspaces': print(s)\n"]
+      "    for i,e in enumerate(l):\n" +
+      "        n=e.get('id') if isinstance(e,dict) else e\n" +
+      "        if n=='omarchy.workspaces': print('ws', s)\n" +
+      "        if n=='" + root.moduleName + "' and s=='left': print('menu', i)\n"]
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: root.workspaceSection = text.trim().split("\n")[0]
+      onStreamFinished: {
+        var lines = text.trim().split("\n")
+        root.workspaceSection = ""
+        root.menuLeftIndex = -1
+        for (var i = 0; i < lines.length; i++) {
+          var parts = lines[i].split(" ")
+          if (parts[0] === "ws") root.workspaceSection = parts[1].indexOf("center") === 0 ? "center" : parts[1]
+          else if (parts[0] === "menu") root.menuLeftIndex = parseInt(parts[1])
+        }
+      }
     }
   }
 

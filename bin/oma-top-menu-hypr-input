@@ -12,16 +12,17 @@ backup) and never touches anything else in the file:
 Usage: oma-top-menu-hypr-input follow_mouse <0|1|2|3>
        oma-top-menu-hypr-input follow_mouse --remove
 """
+import os
 import re
 import shutil
 import sys
 import time
 from pathlib import Path
 
-PATH = Path.home() / ".config" / "hypr" / "input.lua"
+PATH = Path(os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config")) / "hypr" / "input.lua"
 BEGIN = "-- oma-top-menu: begin"
 END = "-- oma-top-menu: end"
-BLOCK = re.compile(r"\n?" + re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n?", re.S)
+BLOCK = re.compile(r"\n" + re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n", re.S)
 
 
 def main(argv):
@@ -35,12 +36,24 @@ def main(argv):
     if not PATH.exists():
         print(f"{PATH} not found; nothing written", file=sys.stderr)
         return 1
-    text = PATH.read_text()
+    try:
+        text = PATH.read_text()
+    except OSError as exc:
+        print(f"cannot read {PATH}: {exc}", file=sys.stderr)
+        return 1
     stamp = time.strftime('%Y%m%d-%H%M%S') + f"-{time.time_ns() % 1000000:06d}"
     backup = PATH.with_name(f"input.lua.bak.{stamp}")
     shutil.copy2(PATH, backup)
-    text = BLOCK.sub("\n", text).rstrip("\n") + "\n"
+    # Keep only the five newest backups this helper made.
+    for old in sorted(PATH.parent.glob("input.lua.bak.*"))[:-5]:
+        try:
+            old.unlink()
+        except OSError:
+            pass
+    text = BLOCK.sub("", text)
     if value != "--remove":
+        if not text.endswith("\n"):
+            text += "\n"
         text += f"\n{BEGIN}\nhl.config({{ input = {{ follow_mouse = {value} }} }})\n{END}\n"
     tmp = PATH.with_name(".input.lua.oma-top-menu.tmp")
     tmp.write_text(text)

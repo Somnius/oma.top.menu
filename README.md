@@ -26,9 +26,11 @@ Add the widget a second time, on the right (next to the tray) or inside the tray
 
 ![Options panel](docs/screenshots/options-panel.png)
 
+Supported places: the left section for the menu, and the right section or the tray drawer for the icon. The bar tells a widget only a layout hint, not its section, so other places (the centre sections) are not supported.
+
 - **Focus behaviour**: Hover / Click / Off. It applies at once with `hyprctl eval`; *Save* writes a small marked block at the end of `~/.config/hypr/input.lua` (a timestamped backup first). Nothing is changed until you click.
-- **Workspace numbers**: Left / Middle / Right, done with `omarchy bar move omarchy.workspaces --section ...`.
-- **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`, shared by the menu strip and the icon.
+- **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces --section ...`.
+- **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). The workspace move edits your `shell.json` through Omarchy's own `omarchy bar move`, only when you click it. These are the widget's settings in `shell.json`, shared by the menu strip and the icon.
 - **Restart menu service**.
 
 ## Requirements

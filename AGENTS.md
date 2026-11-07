@@ -12,3 +12,4 @@
 - Hyprland here takes Lua dispatch syntax, e.g. `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`.
 - On this machine the shell's plugin hot-reload does not fire (inotify watches are used up), so after copying files into `~/.config/omarchy/plugins/<id>/` run `omarchy restart shell` (tell Lef first) and check there is exactly one bridge process.
 - Do not submit to the Omarchy marketplace (or open any issue on its repo) until Lef says so. Prepare and dry-run only.
+- Test bin/oma-top-menu-hypr-input only with both HOME and XDG_CONFIG_HOME pointed at a temp dir; Lef's shell exports XDG_CONFIG_HOME, so HOME alone still hits the real ~/.config/hypr (this happened once on 2026-11-07, undone).
