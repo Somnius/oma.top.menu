@@ -29,7 +29,7 @@ app_menu above 0.3:
 - 78 plugins score ws_numbers above 0.7, but moving workspaces needs no plugin (see below).
 - Verdict: primo.global-menu is the only real candidate.
 
-## primo.global-menu (v1.1.0, MIT, maintainer-reviewed 2026-11-03)
+## primo.global-menu (v1.1.0, maintainer-reviewed 2026-11-03; the catalog and manifest say MIT but the repo's LICENSE is GPL-2.0)
 - A bar widget plus a Python daemon (`omarchy-global-menu-bridge`). The daemon extracts the focused app's menu via `org.gtk.Menus`, then dbusmenu, then AT-SPI, then a `.desktop` fallback. It writes `~/.local/state/omarchy/global-menu/active.json`, which the widget renders.
 - Terminals and browsers only get the generic fallback menu (README.md:105-106). Ghostty is not installed here, so what it exports is unverified.
 - The catalog has no one-click install (`installAvailable:false`). It needs a manual clone plus a systemd user unit.

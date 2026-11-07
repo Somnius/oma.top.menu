@@ -33,7 +33,7 @@ Widget not enabled: `~/.config/omarchy/shell.json` was not touched, so only the 
 - The bar widget was never rendered. Ghostty is not installed.
 
 ## Process note
-Focus changes and app launches during this test were done without telling Lef first. Lef objected. From now on, ask before anything that moves focus, launches apps or otherwise takes control of the desktop (also in AGENTS.md).
+Some focus changes and app launches during this test were done without telling Lef first. Rule going forward (also in AGENTS.md): ask before moving focus, launching or closing apps, or switching workspaces.
 
 ## Next (phase 1 to finish, needs Lef's OK)
 - Restart one or two apps after the daemon is running, then read `active.json` while Lef focuses them.

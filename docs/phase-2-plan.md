@@ -18,7 +18,7 @@ Sources: docs/marketplace-guidelines.md plus omacom/omarchy-plugin-marketplace S
 - `python-gobject` is not a dependency of Omarchy base: `pactree -r python-gobject` lists other apps (flatpak, lutris, nautilus-python...), so it must be documented as an external dependency (not verified whether Omarchy pulls it in some other way).
 
 ## Proposed design
-1. Layout: `git mv` the contents of `plugin/` to the repo root so `manifest.json` is at the root. Keep primo's copyright: ship its MIT notice (our LICENSE currently only names Lef).
+1. Layout: `git mv` the contents of `plugin/` to the repo root so `manifest.json` is at the root. Licence: primo's LICENSE file is GPL-2.0 (catalog/manifest claim MIT), so the root LICENSE is now GPL-2.0 and the manifest says GPL-2.0-only.
 2. New id (permanent, unique): proposal `io.github.somnius.top-menu`. Not decided; needs Lef and a marketplace search.
 3. Daemon lifecycle: the plugin starts and stops the bridge itself (a Quickshell `Process` in the bar widget or a `service` kind) with `/usr/bin/python3`; no systemd unit, no symlinks, no `environment.d`, no files outside the plugin folder and `$XDG_RUNTIME_DIR` / the state dir. Must be tested: child dies when the widget is removed, the plugin is disabled, or the shell restarts. Open: whether a manifest can declare two kinds (bar-widget + service) and whether a service runs independently of the bar position.
 4. Failure visibility: if `gi`/Atspi is missing or the daemon dies, the widget shows a clear message instead of an empty bar.
@@ -34,3 +34,10 @@ Sources: docs/marketplace-guidelines.md plus omacom/omarchy-plugin-marketplace S
 - Is running the daemon from the plugin the right way to avoid "Manual setup", and is a `Process` child safe w.r.t. the guideline "never start a second Quickshell process"?
 - Are any of the marketplace's blocking patterns or review capabilities triggered by the bridge's existing code (it uses `sh -c`, `gdbus`, `hyprctl`)?
 - Anything missing in this plan?
+
+## Review results (two independent reviews, 2026-11-07)
+- Bridge vs baseline: none of the five blocking patterns is present (no curl/wget pipe, unpinned git, sudo, pkexec, sudoers, /tmp PID file). `sh -c`, subprocess, hyprctl and Gio D-Bus are not in the baseline's catalogue.
+- `service-management` is tripped today by `plugin/systemd/omarchy-global-menu.service` and by README text mentioning `systemctl`. Removing both is expected to avoid the review capability (unverified until the bot runs).
+- Found and fixed: a committed `__pycache__/*.pyc` (now ignored and removed) and the licence mismatch above (root LICENSE was MIT, wrong for a GPL-2.0 derivative).
+- Still open: can one manifest declare bar-widget + service, and does a service outlive the bar widget; does a bar widget's long-lived `Process` pass review; `python-gobject` is a documented external dependency, not installed by `omarchy plugin add`; cleanup of `~/.local/state/omarchy/global-menu` on exit; the bridge never writes `IsEnabled=false` (that it clears when the daemon exits was observed once, not re-checked).
+- Category/tags proposal: Desktop (or Widgets); tags `bar`, `hyprland`.
