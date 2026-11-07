@@ -2165,7 +2165,7 @@ def run_daemon():
         # Focus may have moved while the menu was being extracted (some apps
         # take seconds): drop the stale result and rebuild for the new window.
         current = active_window()
-        if (current.get("address"), current.get("pid"), current.get("class")) != (
+        if current and (current.get("address"), current.get("pid"), current.get("class")) != (
             window.get("address"), window.get("pid"), window.get("class")
         ) and not is_shell_window(current):
             refresh_pending = True

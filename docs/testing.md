@@ -9,7 +9,8 @@ Run from the repo, with `/usr/bin/python3 bin/omarchy-global-menu-bridge`:
 3. Exits with its parent: start it from a `bash -c` that is then killed with `kill -9`. Expected: the daemon exits within about 2 s. Result: it exited.
 4. `org.a11y.Status IsEnabled` returns to false after the daemon is gone (read once after the tests: false).
 
-## With the plugin loaded in the shell (needs shell.json to list the plugin)
+## With the plugin loaded in the shell (done 2026-11-07 on one monitor)
+Results: 5 passed (service mounts from the bar entry alone, kinds service + bar-widget, exactly one bridge process whose parent is the shell, disabling the plugin stops the daemon and re-enabling starts it, a shell restart leaves no orphan). 6 (several monitors), 9 (dependency message) are not tested. Hot-reload of QML did not fire on this machine (inotify watches used up), so every change needed `omarchy restart shell`.
 5. Install, then check `omarchy plugin list --json` shows it enabled with kinds `service` and `bar-widget`.
 6. Exactly one bridge process exists with one monitor, and still one with several (the bar makes one widget per screen; the service is one).
 7. Remove the widget from the bar layout: the bridge process should stop. Re-add it: it should start again.

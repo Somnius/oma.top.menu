@@ -8,8 +8,10 @@ Updated at the end of every phase. One push per phase.
 | 1 | Re-test primo.global-menu with the system Python | done (2026-11-07), see [phase 1 notes](docs/phase-1-primo-test.md): daemon runs, but only fallback menus in 7 apps; why no real menus is unknown |
 | 1b | Diagnose extraction | done (2026-11-07), see [diagnosis](docs/phase-1b-diagnosis.md): menus exist in AT-SPI; Floorp works, Kotatogram fixed by a name-match patch in the repo root; LibreOffice and cost still open |
 | 2a | Marketplace readiness plan, reviewed ([plan](docs/phase-2-plan.md), [guidelines](docs/marketplace-guidelines.md)) | done (2026-11-07), local, not pushed yet |
-| 2b | Restructure to repo root, new id `com.lefteros.somnius.oma-top-menu`, `service` + `bar-widget` kinds, the service owns the daemon (flock guard before AT-SPI calls) (no systemd, symlinks or environment.d), README install/removal/deps, run `omarchy plugin validate` + `qmllint` | todo |
-| 2c | Test the bar widget live: with Lef's go-ahead, back up and edit `shell.json` (menu widget left, workspaces right) | todo |
+| 2b | Restructure to repo root, new id, `service` + `bar-widget`, singleton lock, status message, snapshots streamed by the service | done (2026-11-07), see [testing](docs/testing.md) |
+| 2c | Live bar test | done on this machine (Floorp, Kotatogram, Omamail verified by screenshot); several monitors untested |
+| 2d | Fixed: Firefox-style AT-SPI menus, titled shell windows (Omamail), stale snapshots; recommended `follow_mouse = 2` | done (2026-11-07) |
+| 3 | (next) Firefox menus fill lazily: shortcut-profile fallback or lazy open; marketplace dry run (validator, manifest id uniqueness, README deps); submit | todo |
 | 3 | Fork decision: leaning to fork (the repo root already patched); add a shortcut-profile fallback for apps without a menu bar | in progress |
 | 4 | Build/fork, package as an Omarchy plugin with the daemon unit installed | todo |
 | 5 | List on plugins.omarchy.org, release | todo |

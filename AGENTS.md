@@ -10,3 +10,4 @@
 - Do not edit `~/.config/omarchy/shell.json` or install plugins without Lef's go-ahead.
 - Ask first before anything that takes control of the desktop: moving focus, launching or closing apps, switching workspaces.
 - Hyprland here takes Lua dispatch syntax, e.g. `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`.
+- On this machine the shell's plugin hot-reload does not fire (inotify watches are used up), so after copying files into `~/.config/omarchy/plugins/<id>/` run `omarchy restart shell` (tell Lef first) and check there is exactly one bridge process.

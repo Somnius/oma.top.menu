@@ -95,8 +95,17 @@ BarWidget {
 
   // The service (one per shell) streams the menu snapshots; fall back to the
   // state file when the shell does not give us a service handle.
-  readonly property var menuService: root.bar && root.bar.shell
-    ? root.bar.shell.serviceFor("com.lefteros.somnius.oma-top-menu") : null
+  // serviceTick forces a re-check while the service has not mounted yet.
+  property int serviceTick: 0
+  readonly property var menuService: (root.serviceTick, root.bar && root.bar.shell
+    ? root.bar.shell.serviceFor(root.moduleName) : null)
+
+  Timer {
+    interval: 1000
+    repeat: true
+    running: !root.menuService && root.serviceTick < 30
+    onTriggered: root.serviceTick += 1
+  }
 
   Loader {
     id: dataLoader
