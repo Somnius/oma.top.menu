@@ -5,7 +5,8 @@ Updated at the end of every phase. One push per phase.
 | Phase | What | Status |
 |---|---|---|
 | 0 | Research: catalog scan, GNOME extension, primo.global-menu review | done (2026-11-07) |
-| 1 | Re-test primo.global-menu with the system Python; read quickshell log and `active.json`; test GTK, Qt, Electron (Ghostty if installed); click a menu item; try `/usr/bin/python3` in the unit; measure AT-SPI always-on cost | partly done (2026-11-07), see [phase 1 notes](docs/phase-1-primo-test.md): daemon runs with system Python, only fallback menus seen so far; needs restarted apps and Lef at the keyboard |
+| 1 | Re-test primo.global-menu with the system Python | done (2026-11-07), see [phase 1 notes](docs/phase-1-primo-test.md): daemon runs, but only fallback menus in 7 apps; why no real menus is unknown |
+| 1b | Diagnose extraction: `--debug` with a menu-bearing app focused (Lef focuses), LibreOffice a11y tree, install the `environment.d` a11y file; measure AT-SPI cost | todo |
 | 2 | With Lef's go-ahead: move workspaces right and add the menu widget (primo id or fork id) on the left in `shell.json`; confirm the layout | todo |
 | 3 | Decide: use primo as is, or fork it as Oma Top Menu (add a shortcut-profile fallback) | todo |
 | 4 | Build/fork, package as an Omarchy plugin with the daemon unit installed | todo |

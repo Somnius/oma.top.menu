@@ -39,3 +39,16 @@ Focus changes and app launches during this test were done without telling Lef fi
 - Restart one or two apps after the daemon is running, then read `active.json` while Lef focuses them.
 - Measure CPU with AT-SPI always-on across a session.
 - Then phase 2 (shell.json, with go-ahead) to see the widget.
+
+## Second run (2026-11-07, 12:12, with Lef's go-ahead)
+- Started the daemon first (`/usr/bin/python3`, transient unit), then opened a fresh LibreOffice Writer window, so the app started after the daemon. Focus was not moved by me. Sampled `active.json` every 3 s for 90 s.
+- Result: LibreOffice Writer is `desktop-fallback` (File/Edit/View/Window/Help). Orca too. No real menu extracted.
+- Stopped the daemon afterwards. `org.a11y.Status IsEnabled` read `false` after the stop, so the always-on effect ends with the daemon. `QT_LINUX_ACCESSIBILITY_ALWAYS_ON` is not set (the README's backup `environment.d` file is not installed).
+- A Writer window opened by this test was left open for Lef to close.
+
+## Conclusion for phase 1
+- Verified: the daemon runs and tracks focus with the system Python; the earlier crash was the interpreter.
+- Verified: in every app tried (7), only the generic fallback menu came back.
+- Unknown: why no real menu is extracted (LibreOffice's accessibility tree, daemon extraction order, toolkit settings). Not diagnosed yet: I did not run `--debug` while a menu-bearing app was focused.
+- Unknown: whether the widget renders (needs the `shell.json` edit, phase 2).
+- Consequence: primo works as a shell, but real menus on this machine are not shown yet. This favours the fork idea (shortcut-profile fallback), but a fork is not decided until the extraction question is answered.
