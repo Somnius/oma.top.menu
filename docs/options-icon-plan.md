@@ -1,0 +1,31 @@
+# Options icon (draft for review)
+
+Request (Lef): an Oma Top Menu icon in the right-hand area of the bar, next to the tray / hidden-apps icons, that opens a panel with the plugin's options, for example the recommendation to switch off focus-follows-mouse.
+
+## Verified facts (Omarchy shell source and local tests, 2026-11-07)
+- A manifest has one `barWidget` entry point. `barWidget.allowMultiple`, `defaults` and a typed `schema` (enum/string fields with labels) are supported; `allowMultiple` is read in `shell.qml:1470`.
+- Each widget instance gets `moduleName` and `settings` injected by the bar (`Bar.qml` `injectProps`, `settings = entrySettings(entry)` from its shell.json entry).
+- Widgets save settings with `bar.shell.updateEntryInline(moduleName, entry)` (clock `Panel.qml` `persistSettings`); the write comes back through the bar.
+- `hyprctl eval '<lua>'` runs Lua config at runtime. `hyprctl eval 'hl.config({ input = { follow_mouse = 1 } })'` printed `ok` and left the value at 1 (a no-op test).
+- Omarchy's default is `follow_mouse = 1`; the user's overrides file is `~/.config/hypr/input.lua` (a `hl.config({ input = { ... } })` block with comments).
+- `follow_mouse`: 0 never changes focus, 1 always, 2 click moves keyboard focus, 3 click does not (Hyprland wiki).
+
+## Unknown, needs a test
+- How a second instance of the same widget id is keyed (`moduleName`) and whether `updateEntryInline` can address each instance separately.
+- Whether `omarchy plugin enable` or the bar editor can place a second entry (`{"id": "...", "role": "options"}`) in `bar.layout.right`.
+- Whether there is a supported way to put a widget into the tray/overflow area, or only into the `right` section next to it.
+
+## Proposed design
+1. Same plugin, `allowMultiple: true`, new schema field `role` (enum `menu` | `options`, default `menu`). Role `options` renders only an icon button (our own SVG, `assets/icon.svg`, themed with the bar foreground) that opens a panel; role `menu` is today's strip.
+2. If a second instance cannot be keyed per entry: fall back to a small gear at the left end of the menu strip, or a second tiny plugin. Decide after the test.
+3. Panel contents, v1:
+   - Status: daemon running or error (from the service), focused app, menu source (at-spi / fallback).
+   - Focus behaviour: segmented control Hover (1) / Click (2) / Off (0), showing the live value from `hyprctl getoption input:follow_mouse`. Choosing applies live with `hyprctl eval` (a change Lef asks for by clicking). A separate button "Save to ~/.config/hypr/input.lua" writes the line with a timestamped backup and shows the exact change first. The plugin never edits Hyprland config without that click (marketplace checklist: no overwriting user config without explicit consent).
+   - Show app icon (on/off), Show generic menu for apps without a menu bar (on/off), Restart daemon.
+4. Settings live in the widget's shell.json entry (`defaults` + `schema`), so Omarchy's own bar settings editor also lists them.
+5. The README documents the panel; screenshots added.
+
+## Risks to check in review
+- `hyprctl eval` of a string built in QML: injection (values are fixed integers from an enum, never free text).
+- Editing `input.lua` programmatically: robustness against the user's comments and formatting; must be an explicit action with a backup; must not break a hand-edited file.
+- A second widget instance must not start a second daemon (it doesn't: the service owns it) or double-register IPC (`IpcHandler target` in `BarWidget.qml` would be registered per instance).
