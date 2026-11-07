@@ -119,7 +119,12 @@ Panel {
     property string targetSection: ""
     stderr: StdioCollector { waitForEnd: true; onStreamFinished: if (text.trim() !== "") root.note = text.trim() }
     onExited: function(exitCode) {
-      if (exitCode === 0) { root.workspaceSection = mover.targetSection; root.note = "Workspace numbers moved." }
+      if (exitCode === 0) {
+        root.workspaceSection = mover.targetSection
+        root.note = "Workspace numbers moved."
+        // The menu's index in the bar may have changed with it: the lock follows.
+        if (root.menuService && typeof root.menuService.recaptureLock === "function") root.menuService.recaptureLock()
+      }
     }
   }
 
@@ -191,6 +196,25 @@ Panel {
           onChanged: function(v) { root.moveWorkspaces(v) }
         }
 
+        PanelSectionHeader { text: "Position"; foreground: root.barForeground }
+        ButtonGroup {
+          options: [{ value: "free", label: "Free" }, { value: "locked", label: "Locked" }]
+          value: root.setting("locked", false) === true ? "locked" : "free"
+          onChanged: function(v) {
+            root.persist({ locked: v === "locked" })
+            if (root.menuService && typeof root.menuService.setLocked === "function")
+              root.menuService.setLocked(v === "locked")
+          }
+        }
+        Text {
+          width: parent.width
+          wrapMode: Text.WordWrap
+          color: Qt.darker(root.barForeground, 1.3)
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.caption
+          text: "The bar can drag the menu anywhere. Locked puts it back in its place within a couple of seconds if it is dragged away (the bar has no lock of its own, so the plugin does this). Unlock before rearranging your bar."
+        }
+
         PanelSectionHeader { text: "Dividers"; foreground: root.barForeground }
         ButtonGroup {
           options: [{ value: "off", label: "Hidden" }, { value: "on", label: "Shown" }]
@@ -233,6 +257,23 @@ Panel {
           text: "Restart menu service"
           bordered: true
           onClicked: { if (root.menuService && typeof root.menuService.restart === "function") root.menuService.restart() }
+        }
+
+        PanelSeparator {}
+
+        Text {
+          width: parent.width
+          wrapMode: Text.WordWrap
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.3)
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.caption
+          text: "Oma Top Menu, made by Lef (Somnius). Free software, GPL-2.0."
+        }
+        Button {
+          text: "GitHub: Somnius/oma.top.menu"
+          bordered: true
+          onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/Somnius/oma.top.menu"])
         }
       }
     }

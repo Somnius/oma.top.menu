@@ -37,6 +37,75 @@ Item {
     followProcess.running = true
   }
 
+  // ---- Lock position -------------------------------------------------------
+  // The bar has no lock and no per-widget veto (its drag handler sits above every
+  // widget), so the lock is done here: while it is on, the shell.json layout is
+  // read every 1.5 s and, if the menu was dragged out of its place in the left
+  // section, it is put back with Omarchy's own `omarchy bar move`.
+  readonly property string pluginId: "com.lefteros.somnius.oma-top-menu"
+  readonly property string layoutPath: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/omarchy/shell.json"
+  property bool locked: false
+  property int lockIndex: -1
+  property bool lockCapture: false
+  property int restores: 0
+
+  function setLocked(value) {
+    var v = value === true
+    if (v === root.locked) return
+    root.locked = v
+    root.restores = 0
+    if (v) root.recaptureLock()
+  }
+
+  // Remember where the menu is now (also called after the panel moves the workspace numbers).
+  function recaptureLock() {
+    root.lockCapture = true
+    layoutFile.reload()
+  }
+
+  function leftIndexIn(text) {
+    var config
+    try { config = JSON.parse(text) } catch (e) { return -2 }
+    var left = config && config.bar && config.bar.layout && config.bar.layout.left ? config.bar.layout.left : []
+    for (var i = 0; i < left.length; i++) {
+      var entry = left[i]
+      if ((entry && typeof entry === "object" ? entry.id : entry) === root.pluginId) return i
+    }
+    return -1
+  }
+
+  function checkLayout(text) {
+    var index = root.leftIndexIn(text)
+    if (index === -2) return                       // unreadable right now: do nothing
+    if (root.lockCapture) { root.lockCapture = false; root.lockIndex = index; return }
+    if (!root.locked || root.lockIndex < 0 || index === root.lockIndex) { root.restores = 0; return }
+    if (restoreProcess.running) return
+    if (root.restores >= 5) {                      // something keeps moving it: stop fighting
+      root.locked = false
+      root.writeStatus("error", "Oma Top Menu: the position lock was switched off because the menu kept being moved")
+      return
+    }
+    root.restores += 1
+    restoreProcess.command = ["omarchy", "bar", "move", root.pluginId, "--section", "left", "--index", String(root.lockIndex)]
+    restoreProcess.running = true
+  }
+
+  Process { id: restoreProcess }
+
+  FileView {
+    id: layoutFile
+    path: root.layoutPath
+    printErrors: false
+    onLoaded: root.checkLayout(text())
+  }
+
+  Timer {
+    interval: 1500
+    repeat: true
+    running: root.locked
+    onTriggered: layoutFile.reload()
+  }
+
   Process {
     id: followProcess
     onExited: function(exitCode) {

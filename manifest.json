@@ -24,7 +24,9 @@
       "dividers": false,
       "spacing": "normal",
       "showAppIcon": true,
-      "hideGeneric": false
+      "hideGeneric": false,
+      "locked": false,
+      "followMouse": ""
     },
     "schema": [
       {
@@ -55,6 +57,25 @@
         "type": "boolean",
         "label": "Hide the generic menu for apps without a menu bar",
         "defaultValue": false
+      },
+      {
+        "key": "locked",
+        "type": "boolean",
+        "label": "Lock the menu in its place",
+        "defaultValue": false
+      },
+      {
+        "key": "followMouse",
+        "type": "enum",
+        "label": "Focus behaviour (empty = leave Hyprland alone)",
+        "options": [
+          "",
+          "0",
+          "1",
+          "2",
+          "3"
+        ],
+        "defaultValue": ""
       }
     ]
   }

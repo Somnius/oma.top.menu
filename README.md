@@ -22,6 +22,13 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 - A background service (started by the plugin itself, one per shell) reads each menu from the app: `org.gtk.Menus`, `dbusmenu`, then the accessibility tree (AT-SPI). Apps without a menu bar of their own get a generic menu. With several windows of one app, the menu of the window whose title matches is used.
 - Sandboxed apps (whose accessibility pid differs from the window pid) are matched by name.
 
+## Moving the menu
+Drag the menu strip anywhere along the bar with the mouse (Omarchy's own bar drag-and-drop), or lock it in place in the options. Clicking still opens the menu; only dragging moves it.
+
+![Dragging the menu along the bar and back](docs/media/moving-the-menu.gif)
+
+Details, supported places and how the lock works: [docs/moving-the-menu.md](docs/moving-the-menu.md).
+
 ## Options panel
 **Right-click the menu strip** to open the options panel. (Optionally add the widget a second time, on the right next to the tray or inside the tray drawer, to get a small options icon there: where a copy is placed decides what it is. The left section is the menu; anywhere else is the icon; the centre sections are not supported. Use `omarchy plugin remove` and the uninstall helper below to leave no extra entry behind.)
 
@@ -33,8 +40,9 @@ The optional options icon sits next to the tray chevron:
 
 - **Focus behaviour**: *System* (leave your Hyprland setting alone), Hover, Click or Off. Hover is Omarchy's default and moves focus as the pointer crosses windows, so a menu changes on the way to the bar; Click keeps the menu of the window you clicked. The choice is a setting of this widget (kept in `shell.json`) and the plugin applies it with `hyprctl`, again after every Hyprland reload. **No Hyprland file is edited**, and removing the plugin ends it (your own value returns at the next reload).
 - **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces ...` when you click it.
+- **Position**: Free, or Locked (puts the menu back if it is dragged away).
 - **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`.
-- **Restart menu service**.
+- **Restart menu service**, and a **GitHub** button with a small creator note.
 
 Every action the plugin takes, and how to undo it, is listed in [docs/actions.md](docs/actions.md). The Omarchy internals it relies on are in [docs/internals.md](docs/internals.md).
 

@@ -178,7 +178,8 @@ BarWidget {
     ignoreUnknownSignals: true
     function onIpcRequest(action) {
       if (!root.monitor || !root.monitor.focused) return
-      if (action === "options") { root.openOptions(); return }
+      // Only the menu strip answers "options", so two copies never open two panels.
+      if (action === "options") { if (!root.optionsRole) root.openOptions(); return }
       if (root.optionsRole) return
       if (action === "open") root.open()
       else if (action === "close") root.close()
@@ -198,6 +199,11 @@ BarWidget {
   }
 
   // The follow-mouse choice is a widget setting; the service applies it.
+  function syncLock() {
+    if (root.menuService && typeof root.menuService.setLocked === "function")
+      root.menuService.setLocked(root.setting("locked", false) === true)
+  }
+
   function syncFollowMouse() {
     if (root.menuService && typeof root.menuService.setFollowMouse === "function")
       root.menuService.setFollowMouse(root.setting("followMouse", ""))
@@ -213,8 +219,8 @@ BarWidget {
     p.menuService = root.menuService
   }
   onBarChanged: root.injectOptions()
-  onSettingsChanged: { root.injectOptions(); root.syncFollowMouse() }
-  onMenuServiceChanged: { root.injectOptions(); root.syncFollowMouse() }
+  onSettingsChanged: { root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
+  onMenuServiceChanged: { root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
 
   Loader {
     id: optionsLoader

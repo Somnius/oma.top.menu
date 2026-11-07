@@ -24,6 +24,9 @@ Run `python3 tests/check_shell_api.py` (greps the installed shell for every name
 ## Multi-monitor (tested 2026-11-07 with a virtual monitor)
 `hyprctl output create headless` added a second monitor; the bar on it showed its own menu (Files) while the first showed another (Omamail/Kotatogram), also while focus moved between monitors; closing the window cleared that monitor's menu; removing the monitor returned to normal; one daemon throughout; idle CPU about 0.6%. Unit tests cover the monitor planning (focused, other, empty, stale `lastwindow`, special workspace, shell popup). Not tested: two windows of one app on two monitors (matching by frame title is unit-tested with stub accessibles only), clicking a menu item on a monitor that does not have focus, and a real second physical monitor.
 
+## Position lock (tested 2026-11-07)
+With the lock on, moving the menu to `centerBegin` with `omarchy bar move` was undone within about 2 s; with it off the move stayed. The lock relies on `omarchy bar move --index` and on reading `shell.json`; if either changes it stops working and nothing else is affected. See docs/moving-the-menu.md.
+
 ## Removal (tested 2026-11-07)
 Disable, move the folder aside and restart the shell with both bar entries present: no process left, no journal errors, nothing drawn for the leftover entry; the second entry stays in `shell.json` (Omarchy deletes only the first). State is in the runtime folder (tmpfs), and nothing is written to Hyprland files. Everything was restored byte-for-byte afterwards.
 
