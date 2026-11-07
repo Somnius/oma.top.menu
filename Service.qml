@@ -101,7 +101,7 @@ Item {
         root.writeStatus("ok", "")
         daemon.running = true
       } else {
-        root.writeStatus("error", strings.t("error.deps", "Oma Top Menu needs python-gobject and at-spi2-core (pacman -S python-gobject)"))
+        root.writeStatus("error", strings.t("error.deps", "Oma Top Menu needs the python-gobject and at-spi2-core packages"))
       }
     }
   }

@@ -52,7 +52,7 @@ Every action the plugin takes, and how to undo it, is listed in [docs/actions.md
 
 ## Requirements
 - Omarchy with the Quattro shell, Hyprland.
-- `python-gobject` and `at-spi2-core` (the plugin checks for them and says so in the bar if they're missing): `sudo pacman -S python-gobject`.
+- The `python-gobject` and `at-spi2-core` packages from Arch's official repositories (the plugin checks for them and says so in the bar if they're missing).
 - It uses `/usr/bin/python3`.
 
 ## Install

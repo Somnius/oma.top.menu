@@ -6,7 +6,7 @@
   "common.shown": "Shown",
   "dividers.title": "Dividers",
   "error.daemon": "Oma Top Menu daemon keeps stopping (see: journalctl --user -b | grep oma-top-menu)",
-  "error.deps": "Oma Top Menu needs python-gobject and at-spi2-core (pacman -S python-gobject)",
+  "error.deps": "Oma Top Menu needs the python-gobject and at-spi2-core packages",
   "focus.click": "Click",
   "focus.hint": "Hover moves focus as the pointer crosses windows, so a menu changes on the way to the bar. Click keeps the menu of the window you clicked. Kept in this widget's settings and applied by the plugin (nothing is written to your Hyprland files); if you remove the plugin, your own setting returns at the next Hyprland reload.",
   "focus.hover": "Hover",
