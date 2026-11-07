@@ -198,7 +198,6 @@ class RefreshTest(unittest.TestCase):
         self.workspaces = [{"id": 1, "lastwindow": "0xa"}, {"id": 11, "lastwindow": "0x0"}]
         published = []
         state.refresh(publish=lambda r: published.append({k: (v or {}).get("appName") for k, v in r["monitors"].items()}))
-        self.assertIsNone(published[-1]["DP-2"] if published[-1]["DP-2"] is None else published[-1]["DP-2"])
         self.assertEqual(published[-1], {"DP-1": "floorp", "DP-2": None})
 
     def test_ids_are_unique_across_monitors(self):
@@ -294,3 +293,7 @@ class FrameSpecificityTest(unittest.TestCase):
         ])
         ex = bridge.AtspiMenuExtractor(1, "App", "0x1", "app", "Notes for the garden - App")
         self.assertIs(ex._frame_menubar(app), bar_long)
+
+
+if __name__ == "__main__":
+    unittest.main()
