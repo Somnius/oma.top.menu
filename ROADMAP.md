@@ -11,7 +11,7 @@ Updated at the end of every phase. One push per phase.
 | 2b | Restructure to repo root, new id, `service` + `bar-widget`, singleton lock, status message, snapshots streamed by the service | done (2026-11-07), see [testing](docs/testing.md) |
 | 2c | Live bar test | done on this machine (Floorp, Kotatogram, Omamail verified by screenshot); several monitors untested |
 | 2d | Fixed: Firefox-style AT-SPI menus, titled shell windows (Omamail), stale snapshots; recommended `follow_mouse = 2` | done (2026-11-07) |
-| 2e | Options icon and panel (focus behaviour, workspace position, dividers, spacing, app icon, generic menu); the icon or menu role comes from where the widget is placed | built and shown in the bar (2026-11-07); workspace move fixed after Lef's report; follow-mouse live toggle, Save, dividers, spacing, tray-drawer placement and several monitors not clicked through yet | 
+| 2e | Options icon and panel (focus behaviour, workspace position, dividers, spacing, app icon, generic menu); the icon or menu role comes from where the widget is placed | built and shown in the bar (2026-11-07); workspace move fixed after Lef's report; confirmed by Lef: follow-mouse Click, Save, dividers, spacing, workspace Left/Middle/Right; not yet: App icon and generic-menu buttons, tray drawer, several monitors | 
 | 3 | Fork decision: forked from primo.global-menu; marketplace dry run (validator, id uniqueness, README deps); Firefox lazy menus | next |
 | 4 | Shortcut-profile fallback for apps with no menu bar (check licence and format of the GNOME extension's profiles first) | todo |
 | 5 | List on plugins.omarchy.org, release | todo |
