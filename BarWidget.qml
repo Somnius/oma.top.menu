@@ -5,19 +5,22 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
+// Oma Top Menu, modified from primo.global-menu (GPL-2.0), 2026-11-07: the bridge
+// is run by Service.qml and called through /usr/bin/python3.
 // macOS-style app menu bar: shows the focused window's menu strip (from the
 // omarchy-global-menu-bridge snapshot) in the bar, with click-to-open popups
 // and hover-to-switch submenus. The bar slot renders the strip; a separate
 // PopupWindow hosts the open menu so clicking outside dismisses it.
 BarWidget {
   id: root
-  moduleName: "primo.global-menu"
+  moduleName: "com.lefteros.somnius.oma-top-menu"
 
   readonly property var dataLoaderItem: dataLoader.item
   readonly property var record: dataLoaderItem ? dataLoaderItem.record : null
   readonly property var menubar: dataLoaderItem ? dataLoaderItem.menubar : []
   readonly property string appIcon: dataLoaderItem ? dataLoaderItem.icon : ""
   readonly property string appName: dataLoaderItem ? dataLoaderItem.appName : ""
+  readonly property string statusMessage: dataLoaderItem ? dataLoaderItem.statusMessage : ""
 
   property int openIndex: -1
   property var openEntry: null
@@ -72,7 +75,7 @@ BarWidget {
     } else if (kind === "hypr") {
       Quickshell.execDetached(["hyprctl", "dispatch", String(action.lua || "")])
     } else {
-      Quickshell.execDetached([root.bridgePath, "activate", "--action-json", JSON.stringify(action)])
+      Quickshell.execDetached(["/usr/bin/python3", root.bridgePath, "activate", "--action-json", JSON.stringify(action)])
     }
   }
 
@@ -125,7 +128,7 @@ BarWidget {
   }
 
   IpcHandler {
-    target: "primo.global-menu"
+    target: "com.lefteros.somnius.oma-top-menu"
 
     function open(): void { root.broadcast("open") }
     function close(): void { root.broadcast("close") }
@@ -176,6 +179,16 @@ BarWidget {
           font.pixelSize: Style.font.body
           renderType: Text.NativeRendering
         }
+      }
+
+      Text {
+        visible: root.statusMessage !== "" && root.menubar.length === 0
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.statusMessage
+        color: root.bar ? root.bar.barForeground : Color.foreground
+        font.family: root.bar ? root.bar.fontFamily : Style.font.family
+        font.pixelSize: Style.font.body
+        renderType: Text.NativeRendering
       }
 
       Repeater {

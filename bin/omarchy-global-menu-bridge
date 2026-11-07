@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """omarchy-global-menu-bridge — focused-app menus for the omarchy bar.
 
+Oma Top Menu (com.lefteros.somnius.oma-top-menu) is a modified version of
+primo.global-menu v1.1.0 (PrimoGameStudio, GPL-2.0). Changes, 2026-11-07:
+the state directory and config file are renamed so both plugins can coexist,
+AT-SPI menus are also matched by application name when the window pid differs
+(sandboxed apps), the daemon takes a single-instance lock before touching the
+accessibility bus, exits when its parent goes away, and removes its state
+files on exit.
+
 Tracks the focused Hyprland window and publishes a JSON snapshot of its menu
-to ~/.local/state/omarchy/global-menu/active.json, where the
-primo.global-menu bar widget FileView-watches it.
+to ~/.local/state/omarchy/oma-top-menu/active.json, where the
+Oma Top Menu bar widget FileView-watches it.
 
 The menu is extracted from the app itself, in this order: org.gtk.Menus
 (GTK3), com.canonical.dbusmenu (KDE/Electron), the accessibility tree
@@ -21,12 +29,15 @@ action (hyprctl dispatch or a launched command) back in the app.
 """
 
 import argparse
+import atexit
 import base64
 import configparser
+import fcntl
 import json
 import os
 import select
 import shlex
+import signal
 import socket
 import subprocess
 import sys
@@ -35,12 +46,12 @@ from pathlib import Path
 
 STATE_DIR = Path(
     os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local/state")
-) / "omarchy" / "global-menu"
+) / "omarchy" / "oma-top-menu"
 ACTIVE_FILE = STATE_DIR / "active.json"
 REQUEST_FILE = STATE_DIR / "request.json"
 MENU_CONFIG_FILE = Path(
     os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config")
-) / "omarchy" / "global-menu.json"
+) / "omarchy" / "oma-top-menu.json"
 
 _MENU_CONFIG_DEFAULTS = {"name": "Omarchy", "icon": "omarchy"}
 _menu_config_cache = {"mtime": None, "data": dict(_MENU_CONFIG_DEFAULTS)}
@@ -49,7 +60,7 @@ _menu_config_cache = {"mtime": None, "data": dict(_MENU_CONFIG_DEFAULTS)}
 def load_menu_config():
     """User overrides for the no-window-focused fallback menu.
 
-    Reads ~/.config/omarchy/global-menu.json: {"fallbackName": "...",
+    Reads ~/.config/omarchy/oma-top-menu.json: {"fallbackName": "...",
     "fallbackIcon": "..."}. Missing/corrupt file or empty values fall back
     to defaults. Mtime-cached so each snapshot build re-reads cheaply and
     edits apply live.
@@ -1460,7 +1471,7 @@ class SnapshotBuilder:
     def omarchy_menu(self):
         """Default 'Omarchy' app menu shown when no app window is focused,
         mirroring macOS where the Finder menu always fills the bar.
-        Label/icon come from ~/.config/omarchy/global-menu.json when set."""
+        Label/icon come from ~/.config/omarchy/oma-top-menu.json when set."""
         cfg = load_menu_config()
         prefix = "omarchy"
         items = [
@@ -1704,7 +1715,7 @@ def ensure_private_state():
     """Make the state directory and any existing state files private.
 
     With a default umask of 022, Path.mkdir/write_text would leave
-    ~/.local/state/omarchy/global-menu at 0755 and active.json at 0644,
+    ~/.local/state/omarchy/oma-top-menu at 0755 and active.json at 0644,
     readable by any other local UID. Keep them at 0700/0600 instead, and
     repair files written by earlier (insecure) runs.
     """
@@ -2053,8 +2064,39 @@ def run_once():
     log(f"wrote snapshot for '{snapshot['appName']}' (source={snapshot['source']})")
 
 
+_LOCK_HANDLE = None
+
+
+def acquire_single_instance_lock():
+    """Take an exclusive lock in the runtime dir; False if another daemon holds it."""
+    global _LOCK_HANDLE
+    runtime = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
+    try:
+        handle = open(runtime / "oma-top-menu.lock", "w")
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    _LOCK_HANDLE = handle
+    return True
+
+
+def remove_state_files():
+    for name in ("active.json", "request.json"):
+        try:
+            (STATE_DIR / name).unlink()
+        except OSError:
+            pass
+
+
 def run_daemon():
     global DEBUG  # noqa: F811
+    # Before any AT-SPI side effect: a second instance must exit untouched.
+    if not acquire_single_instance_lock():
+        log("another oma-top-menu daemon is running; exiting")
+        return 0
+    initial_ppid = os.getppid()
+    atexit.register(remove_state_files)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     initial_window = active_window()
     snapshot = SnapshotBuilder(initial_window).build()
     write_snapshot(snapshot)
@@ -2093,6 +2135,11 @@ def run_daemon():
 
     while True:
         refreshed = False
+
+        # Exit with our parent (the shell service) so we never outlive it.
+        if os.getppid() != initial_ppid:
+            log("parent gone; exiting")
+            return 0
 
         # Keep the AT-SPI registration alive: the a11y bus (or the launcher
         # that tracks it) can be restarted under us, and IsEnabled would

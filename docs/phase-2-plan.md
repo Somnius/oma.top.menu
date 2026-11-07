@@ -18,7 +18,7 @@ Sources: docs/marketplace-guidelines.md plus omacom/omarchy-plugin-marketplace S
 - `python-gobject` is not a dependency of Omarchy base: `pactree -r python-gobject` lists other apps (flatpak, lutris, nautilus-python...), so it must be documented as an external dependency (not verified whether Omarchy pulls it in some other way).
 
 ## Proposed design
-1. Layout: `git mv` the contents of `plugin/` to the repo root so `manifest.json` is at the root. Licence: primo's LICENSE file is GPL-2.0 (catalog/manifest claim MIT), so the root LICENSE is now GPL-2.0 and the manifest says GPL-2.0-only.
+1. Layout: `git mv` the contents of the repo root to the repo root so `manifest.json` is at the root. Licence: primo's LICENSE file is GPL-2.0 (catalog/manifest claim MIT), so the root LICENSE is now GPL-2.0 and the manifest says GPL-2.0-only.
 2. New id (permanent, unique): proposal `com.lefteros.somnius.oma-top-menu` (chosen by Lef; a search of the 6380-plugin catalog found no id containing lefteros, somnius or oma-top).
 3. Daemon lifecycle (decided after review): manifest kinds `service` + `bar-widget`. `Service.qml` owns the one `Process` running the bridge; each per-screen `BarWidget.qml` only reads `active.json`. The plugin starts and stops the bridge itself with `/usr/bin/python3`; no systemd unit, no symlinks, no `environment.d`, no files outside the plugin folder and `$XDG_RUNTIME_DIR` / the state dir. Must be tested: child dies when the widget is removed, the plugin is disabled, or the shell restarts. Open: whether a manifest can declare two kinds (bar-widget + service) and whether a service runs independently of the bar position.
 4. Failure visibility: if `gi`/Atspi is missing or the daemon dies, the widget shows a clear message instead of an empty bar.

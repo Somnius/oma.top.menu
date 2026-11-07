@@ -10,16 +10,16 @@ Method: read-only. No focus changes, no window launches or closes by me. I start
    - Kotatogram: `desktop-fallback`. Cause: the AT-SPI extractor only accepts an app whose pid equals Hyprland's window pid (`discover()`, upstream bridge line about 1187). Kotatogram is sandboxed: Hyprland reports pid 11715, AT-SPI reports 11711, which is an `xdg-dbus-proxy`.
 4. Other windows (cliamp, Strata, Quickshell, Orca) have no AT-SPI menu bar here, so the generic fallback is the expected result (cliamp is a terminal UI).
 
-## Fix (in `plugin/`)
+## Fix (in the repo root)
 `AtspiMenuExtractor.discover()` now, when no accessible has the window's pid, falls back to a name match (`_discover_by_name`): normalised app name, at least 4 characters, substring either way, and only an accessible that actually exposes a menu bar. After the patch, Kotatogram returns `source=at-spi` with File, Edit, Tools, Help. Floorp is unchanged.
 
 ## Review follow-up
-Two independent read-only reviews agreed the diagnosis is supported by the code and flagged the same points. Fixed in `plugin/`:
+Two independent read-only reviews agreed the diagnosis is supported by the code and flagged the same points. Fixed in the repo root:
 - The name fallback now runs only when no AT-SPI app has the window's pid. Before, an app known by pid but without a menu bar could also match another app by name.
 - The window class is now passed to the extractor (`app_id`), so the match uses both the desktop name and the class. The earlier `self.app_id = app_name` line did nothing.
 Re-checked after the fix (builder called directly): Floorp and Kotatogram still return real menus; cliamp and Orca still fall back.
 Still true: `_walk_for_menubar` accepts a plain menu role when there is no menu bar; wrong-app name collisions are untested.
-The first commit of `plugin/` already contained the first version of the patch.
+The first commit of the repo root already contained the first version of the patch.
 
 ## Corrections to earlier notes
 - "7 apps": the distinct apps tried were 6 (Orca, Kotatogram, Strata, cliamp, Files, LibreOffice Writer).
