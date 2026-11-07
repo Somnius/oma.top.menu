@@ -459,5 +459,39 @@ class LazyMenuTest(unittest.TestCase):
             bridge.hypr_json, bridge.active_window, bridge.SnapshotBuilder = saved
 
 
+class DirtyPruneAndFailedActionTest(unittest.TestCase):
+    def test_a_failed_action_schedules_no_rebuild(self):
+        import json, tempfile
+        from pathlib import Path as P
+        old_req, old_exec = bridge.REQUEST_FILE, bridge.execute_action
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge.REQUEST_FILE = P(tmp) / "request.json"
+            bridge.execute_action = lambda a: False
+            try:
+                bridge.REQUEST_FILE.write_text(json.dumps({"action": {"kind": "atspi", "rebuild_window": "0x1"}}))
+                self.assertIsNone(bridge.handle_requests({}))
+            finally:
+                bridge.REQUEST_FILE, bridge.execute_action = old_req, old_exec
+
+    def test_dirty_marks_of_closed_windows_are_dropped(self):
+        saved = (bridge.hypr_json, bridge.active_window, bridge.SnapshotBuilder)
+        clients = [client("0xa", 1, "floorp", title="A")]
+        bridge.hypr_json = lambda args: {"monitors": [mon("DP-1", 1, True)], "workspaces": [{"id": 1, "lastwindow": "0xa"}], "clients": clients}[args[0]]
+        bridge.active_window = lambda: dict(clients[0])
+
+        class B:
+            def __init__(self, win): pass
+            def build(self): return {"appName": "x", "source": "fake", "menubar": []}
+        bridge.SnapshotBuilder = B
+        try:
+            state = bridge.MenuState()
+            state.refresh()
+            state.mark_dirty("0xgone")
+            state.refresh()
+            self.assertNotIn("0xgone", state.dirty)
+        finally:
+            bridge.hypr_json, bridge.active_window, bridge.SnapshotBuilder = saved
+
+
 if __name__ == "__main__":
     unittest.main()

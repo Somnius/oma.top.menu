@@ -28,6 +28,7 @@ SYMBOLS = [
     ("manifest allowMultiple", r"allowMultiple"),
     ("bar slot drag handler (modulePointer)", r"id: modulePointer"),
     ("Commons.Translations (strings.t / tn)", r"function tn\(key, count"),
+    ("Commons.Translations directory property", r"property var directory"),
     ("Hyprland.monitorFor(screen)", r"Hyprland\.monitorFor\(screen\)"),
     ("Hyprland rawEvent handler", r"function onRawEvent\(event\)"),
     ("QsWindow.window", r"QsWindow\.window"),

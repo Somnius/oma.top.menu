@@ -23,6 +23,12 @@ class I18nTest(unittest.TestCase):
     def setUp(self):
         self.catalog = json.loads((ROOT / "i18n" / "en.json").read_text())
 
+    def test_every_call_has_a_literal_key_and_an_english_fallback(self):
+        for qml in sorted(ROOT.glob("*.qml")):
+            text = qml.read_text()
+            self.assertEqual(len(re.findall(r"strings\.t\(", text)), len(CALL.findall(text)),
+                             f"{qml.name}: a strings.t( call without a literal key and English fallback")
+
     def test_catalog_is_flat_strings(self):
         for key, value in self.catalog.items():
             self.assertIsInstance(value, str, key)

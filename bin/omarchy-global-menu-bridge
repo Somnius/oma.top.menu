@@ -2123,8 +2123,7 @@ def handle_requests(item_map):
         return None
     action = data.get("action")
     if isinstance(action, dict):
-        execute_action(action)
-        return action
+        return action if execute_action(action) else None
     item_id = data.get("id")
     if not item_id:
         return None
@@ -2132,8 +2131,7 @@ def handle_requests(item_map):
     if item is None:
         log(f"unknown item id: {item_id}")
         return None
-    execute_action(item.get("action"))
-    return item.get("action")
+    return item.get("action") if execute_action(item.get("action")) else None
 
 
 def tag_lazy_entries(snapshot, address):
@@ -2368,6 +2366,7 @@ class MenuState:
         for address in list(self.cache):
             if address not in live:
                 del self.cache[address]
+        self.dirty &= live
         monitors_out = {n: self.record["monitors"].get(n) for n in plan}
         self.record = {"version": 2, "focused": focused, "monitors": monitors_out}
         # Focused monitor first, so its menu is published before the others are built.
