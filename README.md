@@ -88,4 +88,4 @@ Built with Claude Code; JEV (TypeSafe) was used to classify the marketplace cata
 GPL-2.0, see [LICENSE](LICENSE).
 
 ## Docs
-[SPECS.md](SPECS.md), [ROADMAP.md](ROADMAP.md), [AGENTS.md](AGENTS.md), [NOTES.md](NOTES.md), [docs/](docs).
+[SPECS.md](SPECS.md), [ROADMAP.md](ROADMAP.md), [AGENTS.md](AGENTS.md), [NOTES.md](NOTES.md), [docs/moving-the-menu.md](docs/moving-the-menu.md), [docs/actions.md](docs/actions.md), [docs/internals.md](docs/internals.md), [docs/compatibility.md](docs/compatibility.md), [docs/](docs).

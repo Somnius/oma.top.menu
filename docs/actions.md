@@ -10,7 +10,7 @@ When each action happens, what it touches, and how to undo it. Nothing here runs
 | Reads each window's menu: AT-SPI (accessibility bus), `org.gtk.Menus` and `com.canonical.dbusmenu` on the session bus; reads `.desktop` files in the standard XDG folders (name, icon, actions) | read-only | none needed |
 | Registers an AT-SPI event listener and sets `org.a11y.Status IsEnabled` while running, so Qt and GTK4 apps expose their menus | the accessibility bus; every app's accessibility bridge stays on for the session | stop the daemon (disable the plugin): `IsEnabled` returns to false. Apps already running keep the bridge until restarted |
 | Writes `active.json`, `request.json` (while a click is handled) and `status.json` | `$XDG_RUNTIME_DIR/oma-top-menu/` (tmpfs, cleared at logout) | disable the plugin; files vanish at logout; `bin/oma-top-menu-uninstall --apply` removes them now |
-| Applies the focus-behaviour setting with `hyprctl eval` when you have chosen Hover, Click or Off in the panel, at startup and after a Hyprland config reload | Hyprland's live setting only; **no file is written** | choose *System* in the panel, or remove the plugin; your own value returns at the next Hyprland reload |
+| Applies the focus-behaviour setting with `hyprctl eval` when you have chosen Hover, Click or Off in the panel, at startup and after a Hyprland config reload (verified 2026-11-07: with *System* a `hyprctl reload config-only` returned the value to 1, with *Click* it stayed at 2) | Hyprland's live setting only; **no file is written** | choose *System* in the panel, or remove the plugin; your own value returns at the next Hyprland reload |
 
 ## Only when you click
 | Action | Touches | Undo |

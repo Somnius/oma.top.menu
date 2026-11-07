@@ -13,7 +13,7 @@ from pathlib import Path
 SHELL = Path(sys.argv[1] if len(sys.argv) > 1 else "/usr/share/omarchy/shell")
 
 UI_FILES = ["BarWidget", "Panel", "KeyboardPanel", "PanelKeyCatcher", "PanelSectionHeader",
-            "ButtonGroup", "Button", "WidgetButton", "BorderSurface"]
+            "ButtonGroup", "Button", "WidgetButton", "BorderSurface", "PanelSeparator"]
 # (description, regex that must match somewhere under the shell source)
 SYMBOLS = [
     ("bar requestPopout(owner)", r"function requestPopout\(\w+\)"),
@@ -26,6 +26,9 @@ SYMBOLS = [
     ("WidgetButton hasVisualContent", r"property bool hasVisualContent"),
     ("manifest barWidget defaults/schema", r"meta\.schema"),
     ("manifest allowMultiple", r"allowMultiple"),
+    ("Hyprland.monitorFor(screen)", r"Hyprland\.monitorFor\(screen\)"),
+    ("Hyprland rawEvent handler", r"function onRawEvent\(event\)"),
+    ("QsWindow.window", r"QsWindow\.window"),
     ("Style.bar.iconSlot", r"iconSlot"),
     ("Style.font.caption", r"property (real|int) caption"),
     ("Color.menu.selectedText", r"selectedText"),
@@ -54,6 +57,10 @@ def main():
         if r.returncode != 0:
             print(f"CLI failed: {' '.join(cmd)}"); bad += 1
     r = subprocess.run(["omarchy", "bar", "move", "--help"], capture_output=True, text=True)
+    text_help = r.stdout + r.stderr
+    for flag in ("--before", "--index", "--section"):
+        if flag not in text_help and flag not in subprocess.run(["omarchy-bar", "--help"], capture_output=True, text=True).stdout:
+            print(f"MISSING omarchy bar move flag {flag} in --help (check manually)")
     print("omarchy:", subprocess.run(["omarchy", "version"], capture_output=True, text=True).stdout.strip())
     print("OK" if not bad else f"{bad} problem(s)")
     return 1 if bad else 0

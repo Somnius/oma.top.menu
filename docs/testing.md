@@ -5,7 +5,7 @@ The daemon runs as a child of the shell's service. These tests answer "does it d
 ## Without touching the desktop (done 2026-11-07, all passed)
 Run from the repo, with `/usr/bin/python3 bin/omarchy-global-menu-bridge`:
 1. Single instance: start one daemon, start a second one. Expected: the second prints "another oma-top-menu daemon is running; exiting" and exits 0 without touching AT-SPI. Result: as expected.
-2. Stops on SIGTERM and cleans up: `kill -TERM` the daemon. Expected: it exits and `~/.local/state/omarchy/oma-top-menu` is empty. Result: stopped, directory empty.
+2. Stops on SIGTERM and cleans up: `kill -TERM` the daemon. Expected: it exits and the state files in the runtime folder (`$XDG_RUNTIME_DIR/oma-top-menu`; earlier builds used `~/.local/state/omarchy/oma-top-menu`) are removed. Result: stopped, files removed.
 3. Exits with its parent: start it from a `bash -c` that is then killed with `kill -9`. Expected: the daemon exits within about 2 s. Result: it exited.
 4. `org.a11y.Status IsEnabled` returns to false after the daemon is gone (read once after the tests: false).
 

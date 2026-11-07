@@ -1,3 +1,5 @@
+> **Superseded (2026-11-07, evening):** the *Save to input.lua* design below was replaced. Focus behaviour is now a widget setting applied by the service with `hyprctl eval` (re-applied after a reload; verified), so no Hyprland file is written. See docs/actions.md. The rest of this file is the original design log.
+
 # Options icon (draft for review)
 
 Request (Lef): an Oma Top Menu icon in the right-hand area of the bar, next to the tray / hidden-apps icons, that opens a panel with the plugin's options, for example the recommendation to switch off focus-follows-mouse.
