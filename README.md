@@ -1,5 +1,7 @@
 # Oma Top Menu
 
+![Oma Top Menu: your app's menu on the Omarchy top bar](preview.png)
+
 The focused app's menus (File, Edit, View...) on the left of the Omarchy top bar, like a macOS or GNOME global menu. The workspace numbers can sit on the right.
 
 Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status: early work in progress, 0.1.0, not listed on the marketplace yet.
