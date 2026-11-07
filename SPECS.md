@@ -19,6 +19,7 @@ and show the workspace indicators on the right.
 - Does primo.global-menu render menus here with the system Python? (Phase 1)
 - What does Ghostty expose? (not installed here yet)
 - CPU/memory cost of keeping AT-SPI always on.
+- Can a plugin install and start its own user systemd unit, or must that be a manual step? (primo's catalog status is "Manual setup")
 - Reuse of the GNOME extension's shortcut profiles: licence (GPL-3.0) and format not checked.
 
 ## Non-goals (for now)
