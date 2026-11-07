@@ -19,17 +19,18 @@ A plain click, without moving, still opens the menu under it, so clicking and dr
 - **Centre sections** are not supported (the bar gives a widget no reliable signal there).
 
 ## Locking it in place
-Right-click the strip to open the options and choose **Position: Locked**. The bar has no lock of its own and no way for a widget to refuse a drag (its drag handler sits on top of every widget), so the plugin does the locking:
+Right-click the strip to open the options and choose **Position: Locked**. Then the mouse cannot pick the menu up at all: pressing and dragging does nothing and the pointer shows a not-allowed cursor. Clicking, hovering and right-clicking work as usual.
 
-- While locked, the service reads the bar layout from `shell.json` every 1.5 seconds. If the menu is no longer at its place in the left section, it runs `omarchy bar move com.lefteros.somnius.oma-top-menu --section left --index <its place>`, Omarchy's own command, and the menu snaps back (about two seconds in the test below).
-- If something keeps moving it (more than five restores in a row), the lock switches itself off and the bar says so, instead of fighting.
-- When you move the workspace numbers from the options panel, the lock notes the menu's new index so it does not undo that.
-- If you rearrange the bar yourself, unlock first, rearrange, then lock again (the lock remembers the place where you locked).
+How it works: the bar starts a drag from a pointer area it lays over every widget, and it gives a widget no way to refuse (this is one switch for the whole bar). So while locked, the strip places its own transparent pointer area above that one, in the bar window's top layer. It takes the mouse press, so the bar never sees a drag begin, and it handles hover, click and right-click for the strip itself. Nothing is moved and moved back.
+
+What the lock does not do:
+- It guards against the mouse only. `omarchy bar move`, the bar editor or editing `shell.json` can still move the menu (and the plugin does not fight them).
+- It guards the menu strip, not the optional options icon or any other widget.
+- It exists only while the plugin is running and the strip is shown; disabling or removing the plugin removes the shield with it.
 - The setting is stored with the widget in `shell.json` (`locked`), so it is removed with the plugin.
 
-What it cannot do: stop the drag itself (you will see the menu lift off and snap back), or hold a place when the plugin is not running.
+An earlier version of the lock let the drag happen and then put the menu back with `omarchy bar move` a couple of seconds later. That was replaced because it looked broken (the menu visibly left and came back).
 
-## Tested (2026-11-07, Omarchy 4.5.0-3)
-- Locked: the menu was moved to `centerBegin` with `omarchy bar move` (the same layout change a drag makes) at 0.3 s and was back in the left section at the same place at 2.3 s.
-- Unlocked: the same move stayed where it was.
-- Not tested: a real mouse drag against the lock (the recording is a drag without the lock); the layout restore when the optional second copy of the widget sits in the right section was checked only through the CLI, where the first copy found is the one moved.
+## Tested
+- Earlier snap-back design (replaced): see git history.
+- Shield: loads without errors; logs `shield on` and `blocked a drag of the locked menu` when a drag is attempted. Hand-testing with a real mouse is recorded in docs/compatibility.md.

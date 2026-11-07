@@ -23,7 +23,7 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 - Sandboxed apps (whose accessibility pid differs from the window pid) are matched by name.
 
 ## Moving the menu
-Drag the menu strip anywhere along the bar with the mouse (Omarchy's own bar drag-and-drop), or lock it in place in the options. Clicking still opens the menu; only dragging moves it.
+Drag the menu strip anywhere along the bar with the mouse (Omarchy's own bar drag-and-drop), or lock it in place in the options so it cannot be dragged. Clicking still opens the menu; only dragging moves it.
 
 ![Dragging the menu along the bar and back](docs/media/moving-the-menu.gif)
 
@@ -44,7 +44,7 @@ The optional icon sits next to the tray chevron:
 - **Menu service**: its status and a **Restart service** button are at the top of the editor, for when the menus stop following your windows.
 - **Focus behaviour**: *System* (leave your Hyprland setting alone), Hover, Click or Off. Hover is Omarchy's default and moves focus as the pointer crosses windows, so a menu changes on the way to the bar; Click keeps the menu of the window you clicked. The choice is a setting of this widget (kept in `shell.json`) and the plugin applies it with `hyprctl`, again after every Hyprland reload. **No Hyprland file is edited**, and if you remove the plugin your own value returns at the next reload.
 - **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces ...` when you click it.
-- **Position**: Free, or Locked (puts the menu back if it is dragged away).
+- **Position**: Free, or Locked (the mouse cannot drag the menu away; clicks and right-click still work).
 - **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`.
 - A **GitHub** button with a small creator note.
 

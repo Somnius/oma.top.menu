@@ -19,7 +19,7 @@ When each action happens, what it touches, and how to undo it. Nothing here runs
 | Panel: Focus behaviour | the widget's `followMouse` setting in `shell.json` (through the shell's own settings call) and the live Hyprland value | choose *System* |
 | Panel: Dividers, Spacing, App icon, Apps without a menu bar | the widget's settings in `shell.json` | choose the other option |
 | Panel: Workspace numbers | runs `omarchy bar move omarchy.workspaces ...`, which edits the bar layout in `shell.json` | click another position (Left puts them just before the menu strip) |
-| Panel: Position (Locked) | the widget's `locked` setting; while locked, the service reads `shell.json` every 1.5 s and, if the menu was dragged out of its place, runs `omarchy bar move <id> --section left --index <n>` **without a click** (at most five times in a row, then it unlocks itself) | choose *Free* |
+| Panel: Position (Locked) | the widget's `locked` setting in `shell.json`; while locked the strip shows a transparent pointer area above itself in the bar window (no commands are run and nothing is moved) | choose *Free* |
 | Panel: GitHub button | runs `xdg-open https://github.com/Somnius/oma.top.menu` | close the browser tab |
 | Panel: Restart service (top of the editor) | restarts the daemon | none needed |
 | Right-click on the strip or the icon: the editor; left-click on the icon: a read-only preview | opens a panel | Escape |

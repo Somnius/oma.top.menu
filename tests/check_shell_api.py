@@ -26,6 +26,7 @@ SYMBOLS = [
     ("WidgetButton hasVisualContent", r"property bool hasVisualContent"),
     ("manifest barWidget defaults/schema", r"meta\.schema"),
     ("manifest allowMultiple", r"allowMultiple"),
+    ("bar slot drag handler (modulePointer)", r"id: modulePointer"),
     ("Hyprland.monitorFor(screen)", r"Hyprland\.monitorFor\(screen\)"),
     ("Hyprland rawEvent handler", r"function onRawEvent\(event\)"),
     ("QsWindow.window", r"QsWindow\.window"),

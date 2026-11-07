@@ -171,15 +171,6 @@ BarWidget {
     else root.open()
   }
 
-  // The lock gave up (the menu kept being moved): store that too, so the panel is honest.
-  Connections {
-    target: root.menuService
-    ignoreUnknownSignals: true
-    function onLockGaveUp() {
-      if (optionsLoader.item && typeof optionsLoader.item.persist === "function") optionsLoader.item.persist({ locked: false })
-    }
-  }
-
   // IPC (open/close/toggle) arrives through the service; only the menu strip
   // on the focused monitor answers it.
   Connections {
@@ -222,12 +213,6 @@ BarWidget {
   property bool settingsInjected: false   // set when the bar first assigns this copy its settings
   readonly property bool settingsReady: !root.optionsRole && root.settingsInjected
 
-  function syncLock() {
-    if (!root.settingsReady) return
-    if (root.menuService && typeof root.menuService.setLocked === "function")
-      root.menuService.setLocked(root.setting("locked", false) === true)
-  }
-
   function syncFollowMouse() {
     if (!root.settingsReady) return
     if (root.menuService && typeof root.menuService.setFollowMouse === "function")
@@ -244,8 +229,8 @@ BarWidget {
     p.menuService = root.menuService
   }
   onBarChanged: root.injectOptions()
-  onSettingsChanged: { root.settingsInjected = true; root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
-  onMenuServiceChanged: { root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
+  onSettingsChanged: { root.settingsInjected = true; root.injectOptions(); root.syncFollowMouse() }
+  onMenuServiceChanged: { root.injectOptions(); root.syncFollowMouse() }
 
   Loader {
     id: optionsLoader
@@ -257,6 +242,103 @@ BarWidget {
 
   implicitWidth: root.optionsRole ? optionsButton.implicitWidth : (root.vertical ? root.barSize : stripRow.implicitWidth)
   implicitHeight: root.barSize
+
+  // ---- Lock: a shield above the bar's drag handler ---------------------------
+  // The bar starts a drag from a pointer area laid over every widget and gives a
+  // widget no way to refuse it. So while locked, this widget puts its own pointer
+  // area above that one, in the bar window's top layer: the press never reaches
+  // the bar, no drag can begin, and the strip handles hover, click and right-click
+  // itself. Nothing is moved back afterwards because nothing moved.
+  readonly property bool locked: !root.optionsRole && root.setting("locked", false) === true
+  readonly property var barWindow: root.QsWindow.window
+  property int shieldHover: -1
+
+  function entryIndexAt(mx, my) {
+    for (var i = 0; i < entryRepeater.count; i++) {
+      var item = entryRepeater.itemAt(i)
+      if (!item || !item.visible) continue
+      var p = item.mapFromItem(shield, mx, my)
+      if (p.x >= 0 && p.x <= item.width && p.y >= 0 && p.y <= item.height) return i
+    }
+    return -1
+  }
+
+  MouseArea {
+    id: shield
+
+    property bool moved: false
+    property bool blocked: false
+    property real pressX: 0
+    property real pressY: 0
+
+    parent: root.barWindow ? root.barWindow.contentItem : null
+    z: 100000
+    enabled: root.locked && root.barWindow !== null && parent !== null
+    visible: enabled
+    acceptedButtons: Qt.LeftButton | Qt.RightButton
+    hoverEnabled: true
+    preventStealing: true
+    cursorShape: blocked ? Qt.ForbiddenCursor : (root.shieldHover >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor)
+
+    // Cover exactly this widget (its whole slot), not just the visible text.
+    function sync() {
+      if (!parent) return
+      var p = root.mapToItem(parent, 0, 0)
+      var w = Math.ceil(root.width)
+      var h = Math.ceil(root.height)
+      if (shield.x !== p.x) shield.x = p.x
+      if (shield.y !== p.y) shield.y = p.y
+      if (shield.width !== w) shield.width = w
+      if (shield.height !== h) shield.height = h
+    }
+
+    Timer {
+      interval: 100
+      repeat: true
+      running: shield.enabled
+      triggeredOnStart: true
+      onTriggered: shield.sync()
+    }
+
+    onEnabledChanged: {
+      if (enabled) { sync(); console.warn("oma-top-menu lock: shield on") }
+      else { root.shieldHover = -1; blocked = false; console.warn("oma-top-menu lock: shield off") }
+    }
+
+    onPressed: function(mouse) {
+      pressX = mouse.x
+      pressY = mouse.y
+      moved = false
+      blocked = false
+      mouse.accepted = true
+    }
+
+    onPositionChanged: function(mouse) {
+      var i = root.entryIndexAt(mouse.x, mouse.y)
+      if (i !== root.shieldHover) {
+        root.shieldHover = i
+        if (i >= 0) { var it = entryRepeater.itemAt(i); if (it) it.enterLogic() }
+      }
+      if (pressed && (mouse.buttons & Qt.LeftButton) && !moved
+          && Math.abs(mouse.x - pressX) + Math.abs(mouse.y - pressY) >= Style.space(4)) {
+        moved = true
+        blocked = true
+        console.warn("oma-top-menu lock: blocked a drag of the locked menu")
+      }
+    }
+
+    onExited: root.shieldHover = -1
+    onReleased: blocked = false
+
+    onClicked: function(mouse) {
+      if (mouse.button === Qt.RightButton) { root.openOptions(); return }
+      if (moved) return                       // a blocked drag that ended on an entry is not a click
+      var i = root.entryIndexAt(mouse.x, mouse.y)
+      if (i >= 0) { var it = entryRepeater.itemAt(i); if (it) it.triggerClick() }
+    }
+
+    Component.onDestruction: { enabled = false; parent = null }
+  }
 
   // The options icon: a bar with three menu stops, drawn in the bar colour.
   WidgetButton {
@@ -306,6 +388,7 @@ BarWidget {
     // install needs only this one bar entry.
     MouseArea {
       anchors.fill: parent
+      enabled: !root.locked          // while locked the shield handles every click
       acceptedButtons: Qt.RightButton
       onClicked: root.openOptions()
     }
@@ -375,7 +458,8 @@ BarWidget {
       required property int index
       required property var modelData
 
-      property bool hovered: false
+      property bool ownHover: false
+      readonly property bool hovered: entry.ownHover || root.shieldHover === entry.index
       readonly property var entryItem: entry.modelData
       readonly property string label: String(entry.entryItem && entry.entryItem.label || "")
       readonly property bool hasSubmenu: !!(entry.entryItem && entry.entryItem.items && entry.entryItem.items.length > 0)
@@ -415,22 +499,26 @@ BarWidget {
         renderType: Text.NativeRendering
       }
 
+      // Shared by the entry's own pointer area and by the lock shield.
+      function enterLogic() {
+        if (root.openIndex >= 0 && root.openIndex !== entry.index && entry.hasSubmenu) root.setOpenIndex(entry.index)
+      }
+      function triggerClick() {
+        if (!entry.hasSubmenu) {
+          if (entry.hasAction) root.activate(entry.entryItem)
+          return
+        }
+        if (root.openIndex === entry.index) root.setOpenIndex(-1)
+        else root.setOpenIndex(entry.index)
+      }
+
       MouseArea {
         anchors.fill: parent
-        hoverEnabled: true
-        onEntered: {
-          entry.hovered = true
-          if (root.openIndex >= 0 && root.openIndex !== entry.index && entry.hasSubmenu) root.setOpenIndex(entry.index)
-        }
-        onExited: entry.hovered = false
-        onClicked: {
-          if (!entry.hasSubmenu) {
-            if (entry.hasAction) root.activate(entry.entryItem)
-            return
-          }
-          if (root.openIndex === entry.index) root.setOpenIndex(-1)
-          else root.setOpenIndex(entry.index)
-        }
+        enabled: !root.locked          // while locked the shield handles pointer input
+        hoverEnabled: !root.locked
+        onEntered: { entry.ownHover = true; entry.enterLogic() }
+        onExited: entry.ownHover = false
+        onClicked: entry.triggerClick()
       }
     }
   }

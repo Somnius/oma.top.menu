@@ -91,7 +91,6 @@ Panel {
     else
       mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--section", section, "--index", "0"]
     mover.targetSection = section
-    if (root.menuService && typeof root.menuService.pauseLock === "function") root.menuService.pauseLock()
     mover.running = true
   }
 
@@ -145,8 +144,6 @@ Panel {
         root.workspaceSection = mover.targetSection
         root.note = "Workspace numbers moved."
       }
-      // The menu's index in the bar may have changed with it: the lock follows.
-      if (root.menuService && typeof root.menuService.resumeLock === "function") root.menuService.resumeLock()
     }
   }
 
@@ -243,20 +240,7 @@ Panel {
         ButtonGroup {
           options: [{ value: "free", label: "Free" }, { value: "locked", label: "Locked" }]
           value: root.setting("locked", false) === true ? "locked" : "free"
-          onChanged: function(v) {
-            root.persist({ locked: v === "locked" })
-            if (root.menuService && typeof root.menuService.setLocked === "function")
-              root.menuService.setLocked(v === "locked")
-          }
-        }
-        Text {
-          visible: root.menuService && root.menuService.lockInert === true
-          width: parent.width
-          wrapMode: Text.WordWrap
-          color: root.barForeground
-          font.family: root.bar ? root.bar.fontFamily : Style.font.family
-          font.pixelSize: Style.font.caption
-          text: "The lock is not active: the menu has to be in the left section of the bar."
+          onChanged: function(v) { root.persist({ locked: v === "locked" }) }
         }
         Text {
           width: parent.width
@@ -264,7 +248,7 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "The bar can drag the menu anywhere. Locked puts it back in its place within a couple of seconds if it is dragged away (the bar has no lock of its own, so the plugin does this). Unlock before rearranging your bar."
+          text: "Locked: the mouse cannot drag the menu out of its place (it shows a not-allowed cursor). Clicks, hover and right-click work as usual. Omarchy's own commands and the bar editor can still move it."
         }
 
         PanelSectionHeader { text: "Dividers"; foreground: root.barForeground }
