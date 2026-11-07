@@ -7,7 +7,10 @@ the state directory and config file are renamed so both plugins can coexist,
 AT-SPI menus are also matched by application name when the window pid differs
 (sandboxed apps), the daemon takes a single-instance lock before touching the
 accessibility bus, exits when its parent goes away, and removes its state
-files on exit.
+files on exit. Later on the same day: snapshots are also streamed to stdout
+(--stream) for the shell service, Firefox-style AT-SPI menus (items directly
+under the menu) are read, titled shell windows such as Omamail get their own
+menu, and a snapshot built for a window that lost focus meanwhile is dropped.
 
 Tracks the focused Hyprland window and publishes a JSON snapshot of its menu
 to ~/.local/state/omarchy/oma-top-menu/active.json, where the

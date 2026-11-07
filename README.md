@@ -4,7 +4,12 @@ The focused app's menus (File, Edit, View...) on the left of the Omarchy top bar
 
 Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status: early work in progress, 0.1.0, not listed on the marketplace yet.
 
-<!-- TECH-STACK PILLS: to be added when Lef supplies them (see ROADMAP.md) -->
+![Python 3](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
+![QML](https://img.shields.io/badge/QML-Quickshell-41CD52?logo=qt&logoColor=white)
+![PyGObject](https://img.shields.io/badge/PyGObject-AT--SPI-4A86CF)
+![Hyprland](https://img.shields.io/badge/Hyprland-compositor-58E1FF)
+![Omarchy](https://img.shields.io/badge/Omarchy-plugin-7aa2f7)
+![License](https://img.shields.io/badge/license-GPL--2.0-blue)
 
 ![Floorp](docs/screenshots/bar-floorp.png)
 ![Kotatogram](docs/screenshots/bar-kotatogram.png)

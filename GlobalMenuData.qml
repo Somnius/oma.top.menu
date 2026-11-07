@@ -58,7 +58,7 @@ Item {
   // never fire, so re-read every second. Unchanged content is ignored.
   Timer {
     interval: 1000
-    running: true
+    running: !(root.service && root.service.record)
     repeat: true
     onTriggered: { activeFile.reload(); statusView.reload() }
   }
