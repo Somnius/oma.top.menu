@@ -15,7 +15,7 @@ When each action happens, what it touches, and how to undo it. Nothing here runs
 ## Only when you click
 | Action | Touches | Undo |
 |---|---|---|
-| A menu entry | the app's own action over AT-SPI/D-Bus; for the generic menu: launches the app's `.desktop` command with `sh -c`, or runs a window operation with `hyprctl dispatch` (for example *Close Window*) | what the app did |
+| A menu entry | the app's own action over AT-SPI/D-Bus; for the generic menu: launches the app's `.desktop` command as an argument list (no shell; an `Exec` line that does not parse is not run), or runs a window operation with `hyprctl dispatch` (for example *Close Window*) | what the app did |
 | Panel: Focus behaviour | the widget's `followMouse` setting in `shell.json` (through the shell's own settings call) and the live Hyprland value | choose *System* |
 | Panel: Dividers, Spacing, App icon, Apps without a menu bar | the widget's settings in `shell.json` | choose the other option |
 | Panel: Workspace numbers | runs `omarchy bar move omarchy.workspaces ...`, which edits the bar layout in `shell.json` | click another position (Left puts them just before the menu strip) |
@@ -31,3 +31,7 @@ The plugin does not edit Hyprland config files, install packages, use `sudo` or 
 1. Optional but tidy: `bin/oma-top-menu-uninstall` (dry run) then `--apply`. It removes every bar entry for this plugin (Omarchy's own removal deletes only the first one; a leftover entry is harmless and draws nothing, tested), a legacy `input.lua` block and the state files, with a `shell.json` backup.
 2. `omarchy plugin remove com.lefteros.somnius.oma-top-menu`.
 After a plain `omarchy plugin remove` with no step 1: no process is left, nothing is drawn for a leftover entry, and nothing of ours remains on disk except that entry and, until logout, two small files in the runtime folder.
+
+## Text from other applications
+Menu labels, window titles, app names and icons come from other programs and are treated as untrusted (Omarchy's plugin guide asks for this). Every text the plugin draws is plain text (never rich text), labels are capped at 120 characters and titles at 200, control characters, bidirectional override characters and line separators are removed, icons are limited to a theme name, a local path, `file:///` or `image://icon/` (remote URLs and other image providers are dropped), and one pass over every snapshot caps the number of entries (300 per menu, 40 top-level), the depth and the total size. Tests cover each rule, including a static check that fails if a text element without plain-text format is added.
+Trust boundary: the state folder is owner-only (`$XDG_RUNTIME_DIR/oma-top-menu`), so another process running as the same user could write a snapshot the widget would draw; that process could also run commands directly, so snapshots are not signed.

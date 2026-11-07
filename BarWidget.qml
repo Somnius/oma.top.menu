@@ -92,7 +92,8 @@ BarWidget {
     root.setOpenIndex(-1)
     var kind = action.kind
     if (kind === "exec") {
-      Quickshell.execDetached(["sh", "-c", String(action.command || "")])
+      // An argument list built by the bridge; never a shell string.
+      if (Array.isArray(action.argv) && action.argv.length > 0) Quickshell.execDetached(action.argv.map(String))
     } else if (kind === "hypr") {
       Quickshell.execDetached(["hyprctl", "dispatch", String(action.lua || "")])
     } else {
@@ -467,6 +468,7 @@ BarWidget {
         }
 
         Text {
+          textFormat: Text.PlainText
           anchors.centerIn: parent
           visible: iconWrap.hasGlyph
           text: root.appIcon
@@ -478,6 +480,7 @@ BarWidget {
       }
 
       Text {
+        textFormat: Text.PlainText
         visible: root.statusMessage !== "" && root.menubar.length === 0
         anchors.verticalCenter: parent.verticalCenter
         text: root.statusMessage
@@ -533,6 +536,7 @@ BarWidget {
       }
 
       Text {
+        textFormat: Text.PlainText
         id: labelText
         anchors.centerIn: parent
         text: entry.label

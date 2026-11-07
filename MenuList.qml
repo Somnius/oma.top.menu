@@ -249,6 +249,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         visible: row.hasIndicator && !row.isSeparator
         width: root.indicatorSize
         anchors.left: parent.left
@@ -276,6 +277,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         id: labelText
         visible: !row.isSeparator
         anchors.left: parent.left
@@ -291,6 +293,7 @@ Item {
       }
 
       Text {
+        textFormat: Text.PlainText
         visible: row.isSubmenu
         anchors.right: parent.right
         anchors.rightMargin: root.rowPaddingX

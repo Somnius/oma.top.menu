@@ -170,6 +170,7 @@ Panel {
         spacing: Style.space(8)
 
         Text {
+          textFormat: Text.PlainText
           width: parent.width
           text: "Oma Top Menu"
           color: root.barForeground
@@ -221,6 +222,7 @@ Panel {
           }
         }
         Text {
+          textFormat: Text.PlainText
           width: parent.width
           wrapMode: Text.WordWrap
           color: Qt.darker(root.barForeground, 1.3)
@@ -243,6 +245,7 @@ Panel {
           onChanged: function(v) { root.persist({ locked: v === "locked" }) }
         }
         Text {
+          textFormat: Text.PlainText
           width: parent.width
           wrapMode: Text.WordWrap
           color: Qt.darker(root.barForeground, 1.3)
@@ -280,6 +283,7 @@ Panel {
         }
 
         Text {
+          textFormat: Text.PlainText
           visible: root.note !== ""
           width: parent.width
           wrapMode: Text.WordWrap

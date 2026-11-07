@@ -45,10 +45,6 @@ class SnapshotNameTest(unittest.TestCase):
         self.assertEqual(b.app_name, "Omamail")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 def client(addr, ws, cls="app", title="T", **kw):
     c = {"address": addr, "class": cls, "title": title, "workspace": {"id": ws}, "mapped": True, "hidden": False}
     c.update(kw)
@@ -293,6 +289,99 @@ class FrameSpecificityTest(unittest.TestCase):
         ])
         ex = bridge.AtspiMenuExtractor(1, "App", "0x1", "app", "Notes for the garden - App")
         self.assertIs(ex._frame_menubar(app), bar_long)
+
+
+class SanitizeTest(unittest.TestCase):
+    def test_markup_shaped_text_is_kept_as_text_but_bounded(self):
+        label = '<img src="https://tracker.invalid/x">' + "a" * 10000
+        out = bridge.sanitize_text(label)
+        self.assertEqual(len(out), bridge.MAX_LABEL)
+        self.assertTrue(out.startswith('<img src="https://tracker.invalid/x">'))   # drawn as plain text by the widget
+
+    def test_control_and_override_characters_are_removed(self):
+        self.assertEqual(bridge.sanitize_text("A\x00B\x07C\u202eD\u202aE"), "ABCDE")
+
+    def test_scripts_that_need_joiners_and_isolates_survive(self):
+        persian = "می\u200cخواهم"
+        self.assertEqual(bridge.sanitize_text(persian), persian)
+        self.assertEqual(bridge.sanitize_text("\u2068Linux\u2069"), "\u2068Linux\u2069")
+
+    def test_labels_lose_the_accelerator_suffix_and_are_bounded(self):
+        self.assertEqual(bridge.clean_menu_label("Open\tCtrl+O"), "Open")
+        self.assertEqual(len(bridge.clean_menu_label("x" * 5000)), bridge.MAX_LABEL)
+        self.assertEqual(bridge.clean_menu_label(None), "")
+
+    def test_window_title_and_app_name_are_bounded(self):
+        b = bridge.SnapshotBuilder({"class": "app", "title": "t" * 5000, "address": "0x1", "pid": 1})
+        self.assertEqual(len(b.title), bridge.MAX_TITLE)
+        self.assertLessEqual(len(b.app_name), bridge.MAX_TITLE)
+
+
+class SanitizeIconTest(unittest.TestCase):
+    def test_allowed_forms(self):
+        for ok in ("firefox", "org.mozilla.firefox", "/usr/share/icons/x.png", "file:///usr/share/x.png", "image://icon/firefox"):
+            self.assertEqual(bridge.sanitize_icon(ok), ok)
+
+    def test_everything_else_is_dropped(self):
+        for bad in ("https://tracker.invalid/x.png", "http://x/y", "image://other/provider", "relative/path.png",
+                    "ft\x00p", "a" * 600, "../../etc/passwd", "name with spaces", ""):
+            self.assertEqual(bridge.sanitize_icon(bad), "", bad)
+
+    def test_line_and_paragraph_separators_are_removed(self):
+        self.assertEqual(bridge.sanitize_text("a\u2028b\u2029c"), "abc")
+
+
+class BoundSnapshotTest(unittest.TestCase):
+    def test_huge_menus_are_capped_and_sanitized(self):
+        items = [{"id": str(i), "label": "<b>" + "x" * 500 + "\x00", "icon": "https://x/y.png", "type": "item"} for i in range(5000)]
+        snap = {"appName": "a" * 999, "title": "t", "icon": "javascript:1", "source": "x",
+                "menubar": [{"id": "m", "label": "File", "type": "menu", "items": items}] * 100}
+        out = bridge.bound_snapshot(snap)
+        self.assertLessEqual(len(out["menubar"]), bridge.MAX_TOP_ENTRIES)
+        self.assertLessEqual(len(out["menubar"][0]["items"]), bridge.MAX_ITEMS)
+        self.assertLessEqual(len(__import__("json").dumps(out)), bridge.MAX_SNAPSHOT_BYTES)
+        first = out["menubar"][0]["items"][0]
+        self.assertEqual(first["icon"], "")
+        self.assertEqual(len(first["label"]), bridge.MAX_LABEL)
+        self.assertNotIn("\x00", first["label"])
+        self.assertEqual(len(out["appName"]), bridge.MAX_TITLE)
+        self.assertEqual(out["icon"], "")
+
+    def test_depth_is_bounded(self):
+        node = {"id": "n", "label": "x", "type": "menu", "items": []}
+        for _ in range(30):
+            node = {"id": "n", "label": "x", "type": "menu", "items": [node]}
+        out = bridge.bound_snapshot({"menubar": [node]})
+        depth, cur = 0, out["menubar"][0]
+        while cur.get("items"):
+            cur = cur["items"][0]
+            depth += 1
+        self.assertLessEqual(depth, bridge.MAX_DEPTH + 1)
+
+
+class ExecNoShellTest(unittest.TestCase):
+    def test_exec_actions_are_argument_lists(self):
+        b = bridge.SnapshotBuilder({"class": "app", "title": "t", "address": "0x1", "pid": 1})
+        self.assertEqual(b.exec_cmd("firefox --new-window 'a b'"), {"kind": "exec", "argv": ["firefox", "--new-window", "a b"]})
+        self.assertEqual(b.exec_cmd("broken 'quote"), {"kind": "exec", "argv": []})
+
+    def test_a_line_that_does_not_parse_runs_nothing(self):
+        self.assertEqual(bridge.clean_exec("evil 'unterminated; rm -rf ~"), "")
+
+    def test_execute_action_never_uses_a_shell(self):
+        calls = []
+        real = bridge.subprocess.Popen
+        bridge.subprocess.Popen = lambda *a, **k: calls.append((a, k))
+        try:
+            self.assertTrue(bridge.execute_action({"kind": "exec", "argv": ["echo", "$(whoami)", "x;y"]}))
+            self.assertFalse(bridge.execute_action({"kind": "exec", "command": "rm -rf ~"}))   # the old shell form is refused
+            self.assertFalse(bridge.execute_action({"kind": "exec", "argv": []}))
+            self.assertFalse(bridge.execute_action({"kind": "exec", "argv": ["ok", 5]}))
+        finally:
+            bridge.subprocess.Popen = real
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0][0], ["echo", "$(whoami)", "x;y"])
+        self.assertNotIn("shell", calls[0][1])
 
 
 if __name__ == "__main__":

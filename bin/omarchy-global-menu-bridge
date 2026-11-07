@@ -38,6 +38,7 @@ import configparser
 import fcntl
 import json
 import os
+import re
 import select
 import shlex
 import signal
@@ -45,6 +46,7 @@ import socket
 import subprocess
 import sys
 import time
+import unicodedata
 from pathlib import Path
 
 # Transient state lives in the runtime directory (tmpfs, cleared at logout), so
@@ -286,7 +288,7 @@ def clean_exec(exec_line):
     try:
         tokens = shlex.split(exec_line)
     except ValueError:
-        return exec_line.strip()
+        return ""          # a line that does not parse is not run at all
     if not tokens:
         return ""
     if tokens[0] == "env":
@@ -300,11 +302,83 @@ def clean_exec(exec_line):
     return shlex.join(tokens)
 
 
+MAX_LABEL = 120      # longest menu label, in characters
+MAX_TITLE = 200      # longest app name / window title
+
+
+def sanitize_text(value, limit=MAX_LABEL):
+    """Bound and clean text that comes from other applications.
+
+    Control characters and the bidirectional embedding/override characters
+    (U+202A-202E, the ones used to spoof text) are removed and the length is
+    capped. Isolates, direction marks and the zero-width joiners that some
+    scripts need are kept. The widget also draws everything as plain text.
+    """
+    text = "".join(
+        ch for ch in str(value or "")
+        if unicodedata.category(ch) not in ("Cc", "Zl", "Zp") and not "\u202a" <= ch <= "\u202e"
+    )
+    return text[:limit]
+
+
+_THEME_ICON = re.compile(r"^[A-Za-z0-9._+\-]{1,128}$")
+
+
+def sanitize_icon(value):
+    """Icons from other applications: a theme icon name, an absolute local path,
+    a file:/// URL or an image://icon/ URL. Anything else (remote URLs, other image
+    providers, relative paths, control characters, huge strings) becomes empty."""
+    text = str(value or "").strip()
+    if not text or len(text) > 512 or any(unicodedata.category(ch) == "Cc" for ch in text):
+        return ""
+    if text.startswith("/") or text.startswith("file:///") or text.startswith("image://icon/"):
+        return text
+    return text if _THEME_ICON.match(text) else ""
+
+
+MAX_TOP_ENTRIES = 40
+MAX_ITEMS = 300          # per menu; reduced further if the record would be huge
+MAX_DEPTH = 10
+MAX_SNAPSHOT_BYTES = 1_500_000
+
+
+def bound_snapshot(snapshot):
+    """One pass over a snapshot, whichever extractor built it: sanitize every label
+    and icon, and cap the number of entries, the depth and the total size."""
+    if not isinstance(snapshot, dict):
+        return snapshot
+
+    def clean(items, per_menu, depth):
+        out = []
+        for item in (items or [])[:per_menu]:
+            if not isinstance(item, dict):
+                continue
+            item["label"] = sanitize_text(item.get("label", ""))
+            item["icon"] = sanitize_icon(item.get("icon", ""))
+            if "items" in item:
+                item["items"] = clean(item.get("items"), per_menu, depth + 1) if depth < MAX_DEPTH else []
+            out.append(item)
+        return out
+
+    snapshot["appName"] = sanitize_text(snapshot.get("appName", ""), MAX_TITLE)
+    snapshot["title"] = sanitize_text(snapshot.get("title", ""), MAX_TITLE)
+    snapshot["icon"] = sanitize_icon(snapshot.get("icon", ""))
+    original = snapshot.get("menubar") or []
+    for per_menu in (MAX_ITEMS, 100, 30):
+        # Rebuild from the original lists each time (clean() edits items in place but
+        # only ever shortens, so repeating with a smaller cap is safe).
+        snapshot["menubar"] = clean(original, per_menu, 0)[:MAX_TOP_ENTRIES]
+        if len(json.dumps(snapshot, ensure_ascii=False)) <= MAX_SNAPSHOT_BYTES:
+            break
+    return snapshot
+
+
+
 def clean_menu_label(label):
     """Strip Tab-separated accelerator/hint suffixes GTK apps embed in labels."""
     if not label:
         return ""
-    return str(label).split("\t")[0]
+    return sanitize_text(str(label).split("\t")[0])
 
 
 # ---------------------------------------------------------------------------
@@ -1290,7 +1364,7 @@ class AtspiMenuExtractor:
         return path
 
     def _clean_label(self, label):
-        return label.split("\t")[0]
+        return sanitize_text(label.split("\t")[0])
 
     def _extract_children(self, parent_acc, prefix, base_path, depth=0):
         """Convert a menu's child accessibles into snapshot items."""
@@ -1443,7 +1517,7 @@ class SnapshotBuilder:
     def __init__(self, win):
         self.win = win
         self.app_id = win.get("initialClass") or win.get("class") or ""
-        self.title = win.get("title") or ""
+        self.title = sanitize_text(win.get("title") or "", MAX_TITLE)
         self.address = win.get("address") or ""
         self.pid = win.get("pid") or 0
         self.counter = 0
@@ -1453,6 +1527,7 @@ class SnapshotBuilder:
         self.app_exec = clean_exec((self.desktop or {}).get("exec") or "")
         if self.app_id in SHELL_CLASSES and self.title.strip():
             self.app_name = self.title.strip()
+        self.app_name = sanitize_text(self.app_name, MAX_TITLE)
 
     def nid(self, prefix):
         self.counter += 1
@@ -1478,7 +1553,12 @@ class SnapshotBuilder:
         return {"kind": "hypr", "lua": lua_expr}
 
     def exec_cmd(self, command):
-        return {"kind": "exec", "command": command}
+        # An argument list, never a shell string.
+        try:
+            argv = shlex.split(command) if command else []
+        except ValueError:
+            argv = []
+        return {"kind": "exec", "argv": argv}
 
     def app_menu(self):
         prefix = "app"
@@ -1486,7 +1566,7 @@ class SnapshotBuilder:
         if self.app_exec:
             items.append(self.item(prefix, f"Launch {self.app_name}", self.exec_cmd(self.app_exec)))
         for action in (self.desktop or {}).get("actions", []):
-            items.append(self.item(prefix, action["name"], self.exec_cmd(clean_exec(action["exec"])), icon=action["icon"]))
+            items.append(self.item(prefix, sanitize_text(action["name"]), self.exec_cmd(clean_exec(action["exec"])), icon=sanitize_icon(action["icon"])))
         if items:
             items.append(self.separator(prefix))
         items.append(self.item(prefix, "Close Window", self.hypr(f'hl.dsp.window.close({{ window = "address:{self.address}" }})')))
@@ -1899,10 +1979,10 @@ def execute_action(action):
         run_hyprctl(["dispatch", expr])
         return True
     if kind == "exec":
-        command = action.get("command") or ""
-        if not command:
+        argv = action.get("argv")
+        if not isinstance(argv, list) or not argv or not all(isinstance(a, str) for a in argv):
             return False
-        subprocess.Popen(["sh", "-c", command], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(argv, start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     if kind == "gtk-action":
         return _execute_gtk_action(action)
@@ -2281,7 +2361,7 @@ class MenuState:
             new_focus = name == focused and address != self.last_focused
             age = time.monotonic() - entry["built"] if entry else None
             if entry is None or address in self.dirty or (new_focus and age > 1.0) or age > 120:
-                snap = SnapshotBuilder(win).build()
+                snap = bound_snapshot(SnapshotBuilder(win).build())
                 namespace_ids(snap, address)
                 entry = {"snapshot": snap, "built": time.monotonic()}
                 self.cache[address] = entry
