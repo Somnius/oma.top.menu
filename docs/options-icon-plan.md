@@ -41,3 +41,14 @@ Extra verified facts:
 - `hyprctl eval` of a string built in QML: injection (values are fixed integers from an enum, never free text).
 - Editing `input.lua` programmatically: robustness against the user's comments and formatting; must be an explicit action with a backup; must not break a hand-edited file.
 - A second widget instance must not start a second daemon (it doesn't: the service owns it) or double-register IPC (`IpcHandler target` in `BarWidget.qml` would be registered per instance).
+
+## Review results (two independent reviews) and decision, 2026-11-07
+- Two instances of the same widget id share one settings record: `updateEntryInline` rewrites every entry with that id, and `moduleName` is just the id. So a per-entry `role` setting cannot work.
+- `allowMultiple` is only copied into registry metadata; whether the bar editor enforces it is unknown. The CLI `omarchy bar put <id> --section <s>` exists and can be tried.
+- There is no overflow area. The tray drawer is a `tray` section for StatusNotifier icons; widgets go in `right` (next to the tray) or can be dragged into `tray`.
+- A plugin can move another widget's entry through `mutateShellConfig` only if its manifest kinds include `bar` (full bar replacement), which we are not. But the supported CLI does it: `omarchy bar move omarchy.workspaces --section <left|centerBegin|center|centerEnd|right> [--index N]`; `omarchy bar set <id> <key> <value>` writes widget settings.
+- Widgets receive `fixedEdge` from the bar: "start" in the left section, "end" in the right section, "center" in the middle (`Ui/BarWidget.qml`, `Bar.qml`).
+
+Decision: one widget, `allowMultiple: true`; its role comes from where it is placed, not from a setting. Placed in the left section (`fixedEdge` "start") it is the menu strip; placed in the right section (`fixedEdge` "end") it is the options icon. Both read the same shared settings (dividers, spacing, show icon), which is what we want. If the bar refuses a second entry, fall back to a gear at the left end of the strip.
+Workspace position uses `omarchy bar move omarchy.workspaces --section ...`, run from a button the user clicks. Hyprland `follow_mouse` uses `hyprctl eval` for the live change and an explicit, backed-up edit of `~/.config/hypr/input.lua` for saving.
+Panel built from Omarchy's own UI pieces (`Ui/Panel`, `KeyboardPanel`, `ButtonGroup`, `PanelSlider`, `BarIconButton`), icon `assets/icon.svg`.
