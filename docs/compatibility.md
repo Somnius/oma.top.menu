@@ -28,7 +28,7 @@ Two windows of one app, tested live (2026-11-07): a second Floorp window was ope
 
 ## Position lock
 The lock is a transparent pointer area the strip places above the bar's own drag handler while locked (see docs/moving-the-menu.md). It replaces an earlier version that let the drag happen and then moved the menu back with `omarchy bar move`; that one was removed because the menu visibly left and returned.
-Status: the code loads without errors and logs `shield on` / `blocked a drag`. Behaviour with a real mouse drag is to be confirmed by hand (input injection is not used on this machine); the result will be recorded here.
+Tested by hand with a real mouse (4 of 4 drags blocked, layout unchanged, clicks, hover and right-click working, neighbours not blocked), and live: shield created and removed with the lock, re-placed after moves between sections, torn down with the widget when the plugin is disabled. Bugs found by these tests and fixed: the widget's `width` is 0 (the shield sized itself from it and would have covered nothing; now the implicit size), a shield could linger at the bar's corner while the bar had the widget parked (now gated on the bar's host having a slot), and the shield took hover events away from the bar's own hover logic (now a passive hover handler).
 It relies on the bar keeping its per-widget drag handler below the window's `contentItem` (`tests/check_shell_api.py` looks for `id: modulePointer`) and on the shield being created in that window.
 
 ## Removal (tested 2026-11-07)

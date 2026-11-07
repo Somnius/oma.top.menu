@@ -31,6 +31,9 @@ What the lock does not do:
 
 An earlier version of the lock let the drag happen and then put the menu back with `omarchy bar move` a couple of seconds later. That was replaced because it looked broken (the menu visibly left and came back).
 
-## Tested
-- Earlier snap-back design (replaced): see git history.
-- Shield: loads without errors; logs `shield on` and `blocked a drag of the locked menu` when a drag is attempted. Hand-testing with a real mouse is recorded in docs/compatibility.md.
+## Tested (2026-11-07, Omarchy 4.5.0-3)
+- **Real mouse, by hand (Lef):** with the lock on, drag attempts on the strip did nothing and were logged as blocked (4 of 4); the menu stayed at its place in the bar; clicking menus, hovering and right-click worked; the neighbouring icons were not blocked; with Position set to Free the strip could be dragged again.
+- **Shield size and place:** it covers the strip's whole slot (for example 320 x 26 at x=141) and re-fits when the strip changes width with the focused app's menu (320, 493, 218 px observed); the widget's own `width` is 0, so the size comes from its implicit size.
+- **Lifecycle:** switching the lock on and off creates and removes the shield; moving the strip to another section with `omarchy bar move` and back turns it off and on at the right place; disabling the plugin while locked logs the shield going off and the widget destroyed, with no stray area; the shield only exists while the bar has the widget in a slot.
+- **Hover:** the shield takes no hover events (a passive hover handler follows the pointer), so the bar's own hover logic, such as the indicator peek, keeps seeing the pointer over the strip.
+- **Known limits:** a middle-button press on the strip does nothing (the same as unlocked); the lock does not stop commands or the bar editor; it depends on the bar's internal `modulePointer` (checked by `tests/check_shell_api.py`, but a changed structure can only be found by trying a drag).

@@ -253,6 +253,21 @@ BarWidget {
   readonly property var barWindow: root.QsWindow.window
   property int shieldHover: -1
 
+  // The bar's own host for this widget (an ancestor with `owner` and `placed`).
+  // The shield may exist only while the host is in a slot: a widget the bar has
+  // parked in its pool has no place on the bar, and must not leave a dead area.
+  readonly property var barHost: {
+    var a = root.parent
+    for (var n = 0; a && n < 8; n++) {
+      if (a.owner !== undefined && a.placed !== undefined) return a
+      a = a.parent
+    }
+    return null
+  }
+  readonly property bool slotted: root.barHost !== null && root.barHost.owner !== null && root.barHost.placed === true
+
+  Component.onDestruction: console.warn("oma-top-menu lock: widget destroyed")
+
   function entryIndexAt(mx, my) {
     for (var i = 0; i < entryRepeater.count; i++) {
       var item = entryRepeater.itemAt(i)
@@ -273,10 +288,17 @@ BarWidget {
 
     parent: root.barWindow ? root.barWindow.contentItem : null
     z: 100000
-    enabled: root.locked && root.barWindow !== null && parent !== null
+    // Only while the widget is really shown in a slot: a pooled (hidden) widget
+    // has no place on the bar and must not leave a dead area at the corner.
+    readonly property real wantW: Math.max(root.width, root.implicitWidth, root.parent ? root.parent.width : 0)
+    readonly property real wantH: Math.max(root.height, root.implicitHeight, root.parent ? root.parent.height : 0)
+    enabled: root.locked && root.slotted && root.barWindow !== null && parent !== null && root.visible && wantW > 0 && wantH > 0
     visible: enabled
     acceptedButtons: Qt.LeftButton | Qt.RightButton
-    hoverEnabled: true
+    // No hover of its own: a MouseArea that takes hover events hides the pointer from
+    // the bar's own hover logic below (the indicator peek). Hover is followed by the
+    // passive handler further down, which lets the events through.
+    hoverEnabled: false
     preventStealing: true
     cursorShape: blocked ? Qt.ForbiddenCursor : (root.shieldHover >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor)
 
@@ -284,12 +306,14 @@ BarWidget {
     function sync() {
       if (!parent) return
       var p = root.mapToItem(parent, 0, 0)
-      var w = Math.ceil(root.width)
-      var h = Math.ceil(root.height)
+      var w = Math.ceil(wantW)
+      var h = Math.ceil(wantH)
+      var changed = shield.x !== p.x || shield.y !== p.y || shield.width !== w || shield.height !== h
       if (shield.x !== p.x) shield.x = p.x
       if (shield.y !== p.y) shield.y = p.y
       if (shield.width !== w) shield.width = w
       if (shield.height !== h) shield.height = h
+      if (changed) console.warn("oma-top-menu lock: shield rect", p.x, p.y, w, h, "(widget", root.width, "x", root.height, "implicit", root.implicitWidth, ")")
     }
 
     Timer {
@@ -313,12 +337,27 @@ BarWidget {
       mouse.accepted = true
     }
 
-    onPositionChanged: function(mouse) {
-      var i = root.entryIndexAt(mouse.x, mouse.y)
+    function updateHover(mx, my) {
+      var i = root.entryIndexAt(mx, my)
       if (i !== root.shieldHover) {
         root.shieldHover = i
         if (i >= 0) { var it = entryRepeater.itemAt(i); if (it) it.enterLogic() }
       }
+    }
+
+    HoverHandler {
+      enabled: shield.enabled
+      onPointChanged: shield.updateHover(point.position.x, point.position.y)
+      onHoveredChanged: if (!hovered) root.shieldHover = -1
+    }
+
+    // A strip that changes width (a different app's menu) re-fits at once.
+    Connections {
+      target: root
+      function onImplicitWidthChanged() { if (shield.enabled) shield.sync() }
+    }
+
+    onPositionChanged: function(mouse) {
       if (pressed && (mouse.buttons & Qt.LeftButton) && !moved
           && Math.abs(mouse.x - pressX) + Math.abs(mouse.y - pressY) >= Style.space(4)) {
         moved = true
@@ -327,8 +366,8 @@ BarWidget {
       }
     }
 
-    onExited: root.shieldHover = -1
     onReleased: blocked = false
+    onCanceled: { blocked = false; moved = false }
 
     onClicked: function(mouse) {
       if (mouse.button === Qt.RightButton) { root.openOptions(); return }
