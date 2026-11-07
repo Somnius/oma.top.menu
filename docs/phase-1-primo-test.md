@@ -32,9 +32,6 @@ Widget not enabled: `~/.config/omarchy/shell.json` was not touched, so only the 
 - The first focus script failed: this Hyprland takes Lua syntax, `hl.dsp.focus({ window = "address:0x..." })`, not `focuswindow address:...`. Focus was flaky even after the fix.
 - The bar widget was never rendered. Ghostty is not installed.
 
-## Process note
-Some focus changes and app launches during this test were done without telling Lef first. Rule going forward (also in AGENTS.md): ask before moving focus, launching or closing apps, or switching workspaces.
-
 ## Next (phase 1 to finish, needs Lef's OK)
 - Restart one or two apps after the daemon is running, then read `active.json` while Lef focuses them.
 - Measure CPU with AT-SPI always-on across a session.

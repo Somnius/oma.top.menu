@@ -13,7 +13,7 @@ Like the GNOME "Global Menu" extension (OMG! Ubuntu, 2026-11): the focused app's
 ## Catalog (plugins.omarchy.org/catalog.json, 6380 plugins)
 The page loads `catalog.json` (about 16 MB) via `assets/js/app.js`. I filtered it for bar widgets, panels and suites that mention menu, workspace or active-window, which left 425 candidates.
 
-JEV (jev-1.14.0) scored each one with 3 Noul questions: `app_menu`, `ws_numbers`, `active_title`. That was 425 requests, about 450 input tokens each, sending only public catalog text. No errors.
+A text classifier scored each one on three yes/no questions (`app_menu`, `ws_numbers`, `active_title`), using only public catalog text.
 
 app_menu above 0.3:
 
@@ -67,4 +67,4 @@ Where it goes inside `right` is a choice for Lef.
 - Whether primo renders menus on this machine (not tested).
 - Ghostty's menu exports (not installed).
 - The real CPU cost of AT-SPI always-on.
-- Whether foamy.tray and omcp are what JEV says (sources not read).
+- Whether foamy.tray and omcp are what the classifier scores suggest (sources not read).

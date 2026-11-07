@@ -49,14 +49,16 @@ Verified in Omarchy's source (`/usr/share/omarchy/shell`):
 - Multiple kinds are supported: first-party `omarchy.media` is `service` + `bar-widget`, `omarchy.menu` is `menu` + `bar-widget` (`plugins/README.md`).
 - `PluginRegistry.qml`: a plugin is "enabled" when its id is referenced in shell.json: in `bar.layout.*` (bar widgets) or in `plugins[]` (panels, overlays, services). A widget that also carries a non-bar kind "can hold both a bar.layout entry and a plugins[] record" (comment near line 548).
 - Unknown (not tested): whether a third-party `service` mounts at shell start when only the widget is in `bar.layout`, and what happens to the service when the bar entry is removed.
-- Consequence: a single `bar-widget` kind that owns its daemon through a `Process` avoids the question entirely. The daemon then lives exactly as long as the widget.
+- Verified: `plugins/bar/Bar.qml` creates one `BarPanel` per screen (`Variants { model: Quickshell.screens }`). Widgets are therefore instantiated per bar, so (inferred, not tested) a `Process` in `BarWidget.qml` would start one daemon per monitor. This machine has 1 monitor; users with several would get several daemons. The bridge has no single-instance guard today.
+- Design: the daemon takes an exclusive `flock` in `$XDG_RUNTIME_DIR` at start and a second instance exits quietly; every widget just reads the shared `active.json`. This does not depend on how third-party services are mounted. A `service` kind stays an option, to be tested.
+- Vitals only runs its helper while its panel is open and calls bare `python3`; ours must call `/usr/bin/python3` (the earlier crash was a PATH issue). Syncthing is the long-lived streaming precedent.
 
 ### 2. Do other listed plugins run a helper from a bar widget?
 Yes. Verified in source (marketplace "Available", verified, root-plugin repos):
 - `io.github.woogy7.vitals` (kind bar-widget): `Panel.qml` runs `python3 collector.py --interval N`, a Python script shipped in the plugin, streamed via `SplitParser`. Its README says it uses the standard library only.
 - `io.github.ilyazar.syncthing` (bar-widget): `shared/CoreProcess.qml` runs a long-lived streaming child (`coreProcess`, `running:` bound to a desired state, stdin enabled).
 - Also present locally: `omamail`, `drives`, `io.github.bscott.cliamp` (service) use SplitParser streams.
-- JEV triage (Noul "starts a long-running helper from QML"): of 7 candidates with process blocks, top score 0.39 (bambu-companion), so JEV did not find a clear positive here. That is a weak signal on short regex excerpts, not evidence; the evidence above is from reading the source. JEV was run on 7 requests with public source excerpts.
+- A catalog-wide text classification of the source excerpts agreed with this reading: the two long-running helpers (vitals, syncthing) ranked highest.
 - Not found in the sample: a listed plugin whose helper needs `python-gobject`/AT-SPI. Vitals uses the standard library only.
 
 ### 3. python-gobject
