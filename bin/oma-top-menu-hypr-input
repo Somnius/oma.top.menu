@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Save one Hyprland input setting for Oma Top Menu.
+
+Only ever called from a click in the options panel. It writes a small marked
+block at the end of ~/.config/hypr/input.lua (after making a timestamped
+backup) and never touches anything else in the file:
+
+    -- oma-top-menu: begin
+    hl.config({ input = { follow_mouse = 2 } })
+    -- oma-top-menu: end
+
+Usage: oma-top-menu-hypr-input follow_mouse <0|1|2|3>
+       oma-top-menu-hypr-input follow_mouse --remove
+"""
+import re
+import shutil
+import sys
+import time
+from pathlib import Path
+
+PATH = Path.home() / ".config" / "hypr" / "input.lua"
+BEGIN = "-- oma-top-menu: begin"
+END = "-- oma-top-menu: end"
+BLOCK = re.compile(r"\n?" + re.escape(BEGIN) + r".*?" + re.escape(END) + r"\n?", re.S)
+
+
+def main(argv):
+    if len(argv) != 3 or argv[1] != "follow_mouse":
+        print("usage: follow_mouse <0|1|2|3|--remove>", file=sys.stderr)
+        return 2
+    value = argv[2]
+    if value != "--remove" and value not in ("0", "1", "2", "3"):
+        print("value must be 0, 1, 2, 3 or --remove", file=sys.stderr)
+        return 2
+    if not PATH.exists():
+        print(f"{PATH} not found; nothing written", file=sys.stderr)
+        return 1
+    text = PATH.read_text()
+    stamp = time.strftime('%Y%m%d-%H%M%S') + f"-{time.time_ns() % 1000000:06d}"
+    backup = PATH.with_name(f"input.lua.bak.{stamp}")
+    shutil.copy2(PATH, backup)
+    text = BLOCK.sub("\n", text).rstrip("\n") + "\n"
+    if value != "--remove":
+        text += f"\n{BEGIN}\nhl.config({{ input = {{ follow_mouse = {value} }} }})\n{END}\n"
+    tmp = PATH.with_name(".input.lua.oma-top-menu.tmp")
+    tmp.write_text(text)
+    tmp.replace(PATH)
+    print(f"saved; backup {backup.name}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

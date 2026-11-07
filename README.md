@@ -21,6 +21,16 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 - A background service (started by the plugin itself, one per shell) reads the menu from the app: `org.gtk.Menus`, `dbusmenu`, then the accessibility tree (AT-SPI). Apps without a menu bar of their own get a generic menu.
 - Real menus come from apps that expose them. Sandboxed apps (whose accessibility pid differs from the window pid) are matched by name.
 
+## Options panel
+Add the widget a second time, on the right (next to the tray) or inside the tray drawer, and it becomes an options icon instead of the menu strip: where you place it decides what it is (the left section is the menu, anywhere else is the icon). The `shell.json` entry is just `{ "id": "com.lefteros.somnius.oma-top-menu" }` in `bar.layout.right`; `omarchy bar put` will not add a second copy, so add it by hand or drag it in the bar editor.
+
+![Options panel](docs/screenshots/options-panel.png)
+
+- **Focus behaviour**: Hover / Click / Off. It applies at once with `hyprctl eval`; *Save* writes a small marked block at the end of `~/.config/hypr/input.lua` (a timestamped backup first). Nothing is changed until you click.
+- **Workspace numbers**: Left / Middle / Right, done with `omarchy bar move omarchy.workspaces --section ...`.
+- **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`, shared by the menu strip and the icon.
+- **Restart menu service**.
+
 ## Requirements
 - Omarchy with the Quattro shell, Hyprland.
 - `python-gobject` and `at-spi2-core` (the plugin checks for them and says so in the bar if they're missing): `sudo pacman -S python-gobject`.

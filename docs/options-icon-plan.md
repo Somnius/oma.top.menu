@@ -52,3 +52,11 @@ Extra verified facts:
 Decision: one widget, `allowMultiple: true`; its role comes from where it is placed, not from a setting. Placed in the left section (`fixedEdge` "start") it is the menu strip; placed in the right section (`fixedEdge` "end") it is the options icon. Both read the same shared settings (dividers, spacing, show icon), which is what we want. If the bar refuses a second entry, fall back to a gear at the left end of the strip.
 Workspace position uses `omarchy bar move omarchy.workspaces --section ...`, run from a button the user clicks. Hyprland `follow_mouse` uses `hyprctl eval` for the live change and an explicit, backed-up edit of `~/.config/hypr/input.lua` for saving.
 Panel built from Omarchy's own UI pieces (`Ui/Panel`, `KeyboardPanel`, `ButtonGroup`, `PanelSlider`, `BarIconButton`), icon `assets/icon.svg`.
+
+## Built and verified (2026-11-07)
+- A second `shell.json` entry for the same id is accepted by the bar (`omarchy bar put` refuses to add one, so it was added by hand). The strip stays on the left (`fixedEdge` "start") and the options icon appears on the right next to the tray chevron; the bridge still runs once.
+- `WidgetButton` draws at opacity 0 unless `hasVisualContent` is true; fixed.
+- `omarchy-shell shell summon <id>` opens the panel under the icon; sections render.
+- `bin/oma-top-menu-hypr-input` tested on a copy of `input.lua`: adds the block, replaces it without duplicating, `--remove` restores the original byte for byte, unique backup per run.
+- A no-op `hyprctl eval` of `follow_mouse = 1` left the keyboard layout (`us,gr`), Caps-toggle options, repeat rate and numlock unchanged, so `hl.config` merges.
+- Not clicked through yet: the panel's controls (they change live system state), tray-drawer placement, several monitors.

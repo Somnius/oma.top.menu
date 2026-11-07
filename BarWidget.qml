@@ -20,7 +20,20 @@ BarWidget {
   readonly property var menubar: dataLoaderItem ? dataLoaderItem.menubar : []
   readonly property string appIcon: dataLoaderItem ? dataLoaderItem.icon : ""
   readonly property string appName: dataLoaderItem ? dataLoaderItem.appName : ""
+  readonly property string source: dataLoaderItem ? dataLoaderItem.source : ""
   readonly property string statusMessage: dataLoaderItem ? dataLoaderItem.statusMessage : ""
+
+  // Placement decides the role. The bar gives a widget in the left section
+  // fixedEdge "start"; anywhere else (right section, tray, centre) it is the
+  // options icon. Both share one settings record.
+  readonly property bool optionsRole: root.fixedEdge !== "start"
+  readonly property bool dividers: root.setting("dividers", false) === true
+  readonly property string spacingMode: String(root.setting("spacing", "normal"))
+  readonly property real entryPad: root.spacingMode === "compact" ? Style.space(4)
+    : (root.spacingMode === "roomy" ? Style.space(14) : Style.space(8))
+  readonly property bool showAppIcon: root.setting("showAppIcon", true) !== false
+  readonly property bool hideGeneric: root.setting("hideGeneric", false) === true
+  readonly property var shownMenubar: (root.hideGeneric && root.source === "desktop-fallback") ? [] : root.menubar
 
   property int openIndex: -1
   property var openEntry: null
@@ -132,29 +145,102 @@ BarWidget {
   }
 
   function open(): void {
+    if (root.optionsRole) { if (optionsLoader.item) optionsLoader.item.open(); return }
     var i = root.openIndex >= 0 ? root.openIndex : firstSubmenuIndex()
     if (i < 0) return
     root.setOpenIndex(i)
   }
-  function close(): void { root.setOpenIndex(-1) }
+  function close(): void {
+    if (root.optionsRole) { if (optionsLoader.item) optionsLoader.item.close(); return }
+    root.setOpenIndex(-1)
+  }
   function toggle(): void {
+    if (root.optionsRole) { if (optionsLoader.item) optionsLoader.item.toggle(); return }
     if (root.openIndex >= 0) root.setOpenIndex(-1)
     else root.open()
   }
 
-  IpcHandler {
-    target: "com.lefteros.somnius.oma-top-menu"
+  // Only the menu strip answers IPC; the options icon stays out of it.
+  Loader {
+    active: !root.optionsRole
+    sourceComponent: IpcHandler {
+      target: "com.lefteros.somnius.oma-top-menu"
 
-    function open(): void { root.broadcast("open") }
-    function close(): void { root.broadcast("close") }
-    function toggle(): void { root.broadcast("toggle") }
+      function open(): void { root.broadcast("open") }
+      function close(): void { root.broadcast("close") }
+      function toggle(): void { root.broadcast("toggle") }
+    }
   }
 
-  implicitWidth: root.vertical ? root.barSize : stripRow.implicitWidth
+  readonly property bool opened: root.optionsRole && optionsLoader.item ? optionsLoader.item.opened === true : false
+  readonly property bool popoutSwitchClosing: root.optionsRole && optionsLoader.item ? optionsLoader.item.popoutSwitchClosing === true : false
+  function closeForPopoutSwitch() {
+    if (root.optionsRole && optionsLoader.item) optionsLoader.item.closeForPopoutSwitch()
+  }
+
+  function injectOptions() {
+    var p = optionsLoader.item
+    if (!p) return
+    p.bar = root.bar
+    p.anchorItem = optionsButton
+    p.hostWidget = root
+    p.settings = root.settings
+    p.menuService = root.menuService
+  }
+  onBarChanged: root.injectOptions()
+  onSettingsChanged: root.injectOptions()
+  onMenuServiceChanged: root.injectOptions()
+
+  Loader {
+    id: optionsLoader
+    active: root.optionsRole
+    visible: false
+    source: Qt.resolvedUrl("OptionsPanel.qml")
+    onLoaded: { root.injectOptions(); Qt.callLater(root.injectOptions) }
+  }
+
+  implicitWidth: root.optionsRole ? optionsButton.implicitWidth : (root.vertical ? root.barSize : stripRow.implicitWidth)
   implicitHeight: root.barSize
+
+  // The options icon: a bar with three menu stops, drawn in the bar colour.
+  WidgetButton {
+    id: optionsButton
+    visible: root.optionsRole
+    anchors.fill: parent
+    bar: root.bar
+    tooltipText: "Oma Top Menu options"
+    hasVisualContent: true
+    fixedWidth: root.vertical ? -1 : Style.bar.iconSlot
+    onPressed: function(buttonCode) { if (buttonCode === Qt.LeftButton) root.toggle() }
+    Item {
+      anchors.centerIn: parent
+      width: Style.bar.iconSize
+      height: Style.bar.iconSize
+      readonly property color ink: root.bar ? root.bar.barForeground : Color.foreground
+      Rectangle {
+        anchors.fill: parent
+        radius: width * 0.18
+        color: "transparent"
+        border.width: Math.max(1, Math.round(parent.width * 0.09))
+        border.color: parent.ink
+      }
+      Row {
+        anchors.left: parent.left
+        anchors.leftMargin: parent.width * 0.2
+        anchors.top: parent.top
+        anchors.topMargin: parent.height * 0.22
+        spacing: parent.width * 0.1
+        Repeater {
+          model: 3
+          Rectangle { width: parent.parent.width * 0.16; height: Math.max(1, parent.parent.height * 0.09); color: parent.parent.ink }
+        }
+      }
+    }
+  }
 
   Item {
     id: strip
+    visible: !root.optionsRole
     anchors.fill: parent
 
     Row {
@@ -168,7 +254,7 @@ BarWidget {
         // Non-empty icons that don't resolve to an image (file path or theme
         // icon) are treated as Nerd Font glyphs and rendered as text.
         readonly property bool hasGlyph: String(root.appIcon || "") !== "" && root.appIconUrl === ""
-        visible: (root.appIconUrl !== "" || iconWrap.hasGlyph) && !root.vertical
+        visible: (root.appIconUrl !== "" || iconWrap.hasGlyph) && !root.vertical && root.showAppIcon && !(root.hideGeneric && root.source === "desktop-fallback")
         width: Style.space(24)
         height: root.barSize
         implicitWidth: Style.space(24)
@@ -208,7 +294,7 @@ BarWidget {
 
       Repeater {
         id: entryRepeater
-        model: root.menubar
+        model: root.shownMenubar
         delegate: entryComponent
       }
     }
@@ -231,7 +317,7 @@ BarWidget {
       readonly property bool highlighted: entry.hovered || entry.isOpen
 
       visible: !root.vertical
-      implicitWidth: Math.max(Style.space(8), labelText.implicitWidth + Style.space(16))
+      implicitWidth: Math.max(Style.space(8), labelText.implicitWidth + 2 * root.entryPad)
       implicitHeight: root.barSize
 
       Rectangle {
@@ -239,6 +325,15 @@ BarWidget {
         anchors.fill: parent
         radius: Math.min(Style.cornerRadius, entry.height / 2)
         color: entry.hovered ? Style.normalFill : Style.selectedFill
+      }
+
+      Rectangle {
+        visible: root.dividers && entry.index < root.shownMenubar.length - 1
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        width: 1
+        height: Math.round(root.barSize * 0.45)
+        color: Qt.alpha(root.bar ? root.bar.barForeground : Color.foreground, 0.25)
       }
 
       Text {

@@ -24,6 +24,12 @@ Item {
     statusFile.setText(JSON.stringify({ state: state, message: message }))
   }
 
+  function restart() {
+    root.failures = 0
+    daemon.running = false
+    restartTimer.restart()
+  }
+
   Component.onCompleted: prepare.running = true
 
   Process {
