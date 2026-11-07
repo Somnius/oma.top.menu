@@ -70,6 +70,7 @@ Panel {
     else
       mover.command = ["omarchy", "bar", "move", "omarchy.workspaces", "--section", section, "--index", "0"]
     mover.targetSection = section
+    if (root.menuService && typeof root.menuService.pauseLock === "function") root.menuService.pauseLock()
     mover.running = true
   }
 
@@ -122,9 +123,9 @@ Panel {
       if (exitCode === 0) {
         root.workspaceSection = mover.targetSection
         root.note = "Workspace numbers moved."
-        // The menu's index in the bar may have changed with it: the lock follows.
-        if (root.menuService && typeof root.menuService.recaptureLock === "function") root.menuService.recaptureLock()
       }
+      // The menu's index in the bar may have changed with it: the lock follows.
+      if (root.menuService && typeof root.menuService.resumeLock === "function") root.menuService.resumeLock()
     }
   }
 
@@ -171,7 +172,7 @@ Panel {
         PanelSectionHeader { text: "Focus behaviour"; foreground: root.barForeground }
         ButtonGroup {
           options: [{ value: "system", label: "System" }, { value: "1", label: "Hover" }, { value: "2", label: "Click" }, { value: "0", label: "Off" }]
-          value: root.setting("followMouse", "") === "" ? "system" : String(root.setting("followMouse", ""))
+          value: (/^[0-3]$/.test(String(root.setting("followMouse", "")))) ? String(root.setting("followMouse", "")) : "system"
           onChanged: function(v) {
             var chosen = v === "system" ? "" : v
             root.persist({ followMouse: chosen })
@@ -205,6 +206,15 @@ Panel {
             if (root.menuService && typeof root.menuService.setLocked === "function")
               root.menuService.setLocked(v === "locked")
           }
+        }
+        Text {
+          visible: root.menuService && root.menuService.lockInert === true
+          width: parent.width
+          wrapMode: Text.WordWrap
+          color: root.barForeground
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.caption
+          text: "The lock is not active: the menu has to be in the left section of the bar."
         }
         Text {
           width: parent.width

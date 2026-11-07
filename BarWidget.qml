@@ -171,6 +171,15 @@ BarWidget {
     else root.open()
   }
 
+  // The lock gave up (the menu kept being moved): store that too, so the panel is honest.
+  Connections {
+    target: root.menuService
+    ignoreUnknownSignals: true
+    function onLockGaveUp() {
+      if (optionsLoader.item && typeof optionsLoader.item.persist === "function") optionsLoader.item.persist({ locked: false })
+    }
+  }
+
   // IPC (open/close/toggle) arrives through the service; only the menu strip
   // on the focused monitor answers it.
   Connections {

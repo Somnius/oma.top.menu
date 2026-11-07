@@ -48,6 +48,13 @@ Item {
   property int lockIndex: -1
   property bool lockCapture: false
   property int restores: 0
+  property bool lockPaused: false                    // true while the panel is moving other widgets
+  readonly property bool lockInert: root.locked && root.lockIndex < 0   // menu is not in the left section
+  signal lockGaveUp()
+
+  // The panel moves the workspace numbers: do not mistake that for a drag.
+  function pauseLock() { root.lockPaused = true }
+  function resumeLock() { root.lockPaused = false; if (root.locked) root.recaptureLock() }
 
   function setLocked(value) {
     var v = value === true
@@ -78,10 +85,12 @@ Item {
     var index = root.leftIndexIn(text)
     if (index === -2) return                       // unreadable right now: do nothing
     if (root.lockCapture) { root.lockCapture = false; root.lockIndex = index; return }
+    if (root.lockPaused) return
     if (!root.locked || root.lockIndex < 0 || index === root.lockIndex) { root.restores = 0; return }
     if (restoreProcess.running) return
     if (root.restores >= 5) {                      // something keeps moving it: stop fighting
       root.locked = false
+      root.lockGaveUp()                              // the widget stores locked=false too
       root.writeStatus("error", "Oma Top Menu: the position lock was switched off because the menu kept being moved")
       return
     }
