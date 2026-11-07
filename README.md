@@ -6,6 +6,8 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 
 <!-- TECH-STACK PILLS: to be added when Lef supplies them (see ROADMAP.md) -->
 
+![Oma Top Menu on the Omarchy bar](docs/screenshots/bar-fallback.png)
+
 ## What it does
 - A bar widget shows the focused window's menu and lets you click through it.
 - A background service (started by the plugin itself, one per shell) reads the menu from the app: `org.gtk.Menus`, `dbusmenu`, then the accessibility tree (AT-SPI). Apps without a menu bar of their own get a generic menu.

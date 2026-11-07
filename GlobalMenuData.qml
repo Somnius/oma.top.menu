@@ -16,6 +16,8 @@ Item {
   property var status: null
   readonly property string statusMessage: status && status.state === "error" ? String(status.message || "Oma Top Menu: error") : ""
   property var record: null
+  property string lastText: ""
+  property string lastStatusText: ""
 
   readonly property var menubar: record && Array.isArray(record.menubar) ? record.menubar : []
   readonly property string appId: record ? String(record.appId || "") : ""
@@ -28,23 +30,39 @@ Item {
     path: root.path
     watchChanges: true
     printErrors: false
+    id: activeFile
     onFileChanged: reload()
     onLoaded: root.parse(text())
-    onLoadFailed: root.record = null
+    onLoadFailed: { root.lastText = ""; root.record = null }
   }
 
   FileView {
+    id: statusView
     path: root.stateDir + "/status.json"
     watchChanges: true
     printErrors: false
     onFileChanged: reload()
     onLoaded: {
-      try { root.status = JSON.parse(String(text() || "")) } catch (e) { root.status = null }
+      var t = String(text() || "")
+      if (t === root.lastStatusText) return
+      root.lastStatusText = t
+      try { root.status = JSON.parse(t) } catch (e) { root.status = null }
     }
     onLoadFailed: root.status = null
   }
 
+  // Safety net: if the inotify watch limit is exhausted the watches above
+  // never fire, so re-read every second. Unchanged content is ignored.
+  Timer {
+    interval: 1000
+    running: true
+    repeat: true
+    onTriggered: { activeFile.reload(); statusView.reload() }
+  }
+
   function parse(content) {
+    if (String(content || "") === root.lastText) return
+    root.lastText = String(content || "")
     try {
       var parsed = JSON.parse(String(content || ""))
       root.record = parsed && typeof parsed === "object" ? parsed : null
