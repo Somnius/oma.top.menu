@@ -42,3 +42,6 @@ CI (Python 3.12) runs a compile check, a manifest check and unit tests of pure f
 - If Omarchy changes how widgets learn their section (`fixedEdge`), the icon-versus-menu rule would need a new signal.
 - AT-SPI trees differ per toolkit and version; apps update independently of this plugin.
 - `omarchy plugin add` installs the repository's current head, so what users get is whatever is on `main`.
+
+## Firefox-family lazy menus
+Floorp fills a menu only when it is opened (File, Edit, View, Bookmarks and Help are empty until then). Built: after a click on an empty top-level entry the daemon rebuilds that window's menu about 0.9 s and 2.5 s later (unit-tested: tagging, the request path, the rebuild). Tried and dropped: reading the menus by opening them through accessibility actions. On a fresh Floorp window on a virtual monitor the AT-SPI "open" action on File did nothing, with the window unfocused and focused, and the entries stayed empty, so it cannot be relied on. Not yet seen live: the rebuild after a real click on a window where the menu does open (to be tried by hand on the main Floorp window). Not built: a built-in shortcut-profile fallback (the GNOME extension's profiles are GPL-3.0, a licence decision for the owner).

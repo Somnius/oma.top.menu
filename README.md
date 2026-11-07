@@ -79,7 +79,7 @@ To get menus out of Qt and GTK4 apps, the service registers an AT-SPI listener, 
 Tested on Omarchy 4.5.0-3 with Hyprland 0.56.2. See [docs/compatibility.md](docs/compatibility.md) for what the plugin depends on, how plugin updates behave, and the checks to run after an Omarchy update (`python3 tests/check_shell_api.py`).
 
 ## Known limits
-- Firefox-family browsers (tested: Floorp) only fill a menu after it has been opened once, so some entries are empty at first and a click opens the menu inside the app. The menus you have already opened show up in the bar.
+- Firefox-family browsers (tested: Floorp) only fill a menu after it has been opened once, so some entries are empty at first and a click opens the menu inside the app. The plugin looks again about a second after such a click, so the real items should appear from the next look onward (unit-tested; see docs/compatibility.md for what was and was not seen live). Opening menus by itself to read them was tried and does not work: the app ignores the accessibility "open" action on a fresh window.
 - Apps that were already running before the service started keep an empty accessibility tree until restarted.
 - Apps with no menu bar (terminals, many GTK4 apps) get the generic menu.
 

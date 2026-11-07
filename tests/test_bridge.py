@@ -396,5 +396,68 @@ class SnapshotSizeFloorTest(unittest.TestCase):
             bridge.MAX_SNAPSHOT_BYTES = old
 
 
+class LazyMenuTest(unittest.TestCase):
+    def test_top_level_entries_without_items_are_tagged_for_a_rebuild(self):
+        atspi = {"kind": "atspi", "app": "Floorp", "pid": 1, "index": [0, 1]}
+        snap = {"menubar": [
+            {"id": "a", "label": "File", "type": "item", "action": dict(atspi)},                      # lazy: no items yet
+            {"id": "b", "label": "Tools", "type": "menu", "items": [{"id": "x"}], "action": None},   # already filled
+            {"id": "c", "label": "Help", "type": "item", "action": {"kind": "exec", "argv": ["x"]}},  # not AT-SPI
+        ]}
+        bridge.tag_lazy_entries(snap, "0xabc")
+        self.assertEqual(snap["menubar"][0]["action"]["rebuild_window"], "0xabc")
+        self.assertIsNone(snap["menubar"][1]["action"])
+        self.assertNotIn("rebuild_window", snap["menubar"][2]["action"])
+
+    def test_rebuild_target(self):
+        self.assertEqual(bridge.rebuild_target({"kind": "atspi", "rebuild_window": "0x1"}), "0x1")
+        self.assertIsNone(bridge.rebuild_target({"kind": "atspi"}))
+        self.assertIsNone(bridge.rebuild_target({"kind": "exec", "rebuild_window": "0x1"}))
+        self.assertIsNone(bridge.rebuild_target(None))
+
+    def test_handle_requests_returns_the_action_it_ran(self):
+        import json, tempfile
+        from pathlib import Path as P
+        old_req, old_exec = bridge.REQUEST_FILE, bridge.execute_action
+        ran = []
+        with tempfile.TemporaryDirectory() as tmp:
+            bridge.REQUEST_FILE = P(tmp) / "request.json"
+            bridge.execute_action = lambda a: ran.append(a) or True
+            try:
+                action = {"kind": "atspi", "rebuild_window": "0x9"}
+                bridge.REQUEST_FILE.write_text(json.dumps({"action": action}))
+                self.assertEqual(bridge.handle_requests({}), action)
+                self.assertEqual(ran, [action])
+                self.assertIsNone(bridge.handle_requests({}))            # request file was consumed
+                bridge.REQUEST_FILE.write_text("{not json")
+                self.assertIsNone(bridge.handle_requests({}))
+            finally:
+                bridge.REQUEST_FILE, bridge.execute_action = old_req, old_exec
+
+    def test_a_dirty_window_is_rebuilt_on_the_next_refresh(self):
+        saved = (bridge.hypr_json, bridge.active_window, bridge.SnapshotBuilder)
+        built = []
+        clients = [client("0xa", 1, "floorp", title="A")]
+        bridge.hypr_json = lambda args: {"monitors": [mon("DP-1", 1, True)], "workspaces": [{"id": 1, "lastwindow": "0xa"}], "clients": clients}[args[0]]
+        bridge.active_window = lambda: dict(clients[0])
+
+        class B:
+            def __init__(self, win): pass
+            def build(self):
+                built.append(1)
+                return {"appName": "floorp", "source": "fake", "menubar": []}
+        bridge.SnapshotBuilder = B
+        try:
+            state = bridge.MenuState()
+            state.refresh(); state.refresh()
+            self.assertEqual(len(built), 1)                  # cached
+            state.mark_dirty("0xa"); state.refresh()
+            self.assertEqual(len(built), 2)                  # rebuilt once
+            state.refresh()
+            self.assertEqual(len(built), 2)
+        finally:
+            bridge.hypr_json, bridge.active_window, bridge.SnapshotBuilder = saved
+
+
 if __name__ == "__main__":
     unittest.main()

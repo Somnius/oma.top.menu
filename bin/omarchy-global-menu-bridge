@@ -2103,8 +2103,9 @@ def _execute_atspi_action(action):
 
 
 def handle_requests(item_map):
+    """Run the action a click asked for. Returns the action that was run, or None."""
     if not REQUEST_FILE.is_file():
-        return
+        return None
     try:
         data = json.loads(REQUEST_FILE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -2113,25 +2114,43 @@ def handle_requests(item_map):
             REQUEST_FILE.unlink()
         except OSError:
             pass
-        return
+        return None
     try:
         REQUEST_FILE.unlink()
     except OSError:
         pass
     if not isinstance(data, dict):
-        return
+        return None
     action = data.get("action")
     if isinstance(action, dict):
         execute_action(action)
-        return
+        return action
     item_id = data.get("id")
     if not item_id:
-        return
+        return None
     item = item_map.get(item_id)
     if item is None:
         log(f"unknown item id: {item_id}")
-        return
+        return None
     execute_action(item.get("action"))
+    return item.get("action")
+
+
+def tag_lazy_entries(snapshot, address):
+    """Mark top-level AT-SPI entries that have no items yet (Firefox-family apps fill a
+    menu only once it has been opened). Clicking one makes the app open its own menu;
+    the daemon then rebuilds this window's menu, so the next look has the real items."""
+    for entry in (snapshot or {}).get("menubar") or []:
+        action = entry.get("action") if isinstance(entry, dict) else None
+        if isinstance(action, dict) and action.get("kind") == "atspi" and not entry.get("items"):
+            action["rebuild_window"] = address
+
+
+def rebuild_target(action):
+    """The window to rebuild after this action, or None."""
+    if isinstance(action, dict) and action.get("kind") == "atspi" and action.get("rebuild_window"):
+        return str(action["rebuild_window"])
+    return None
 
 
 def connect_events():
@@ -2364,6 +2383,7 @@ class MenuState:
             age = time.monotonic() - entry["built"] if entry else None
             if entry is None or address in self.dirty or (new_focus and age > 1.0) or age > 120:
                 snap = bound_snapshot(SnapshotBuilder(win).build())
+                tag_lazy_entries(snap, address)
                 namespace_ids(snap, address)
                 entry = {"snapshot": snap, "built": time.monotonic()}
                 self.cache[address] = entry
@@ -2420,6 +2440,7 @@ def run_daemon():
     item_map = {}
     watcher = MenuChangeWatcher()
     refresh_pending = True
+    rebuild_times = []
     sock = connect_events()
     buffer = ""
     last_request_mtime = 0.0
@@ -2492,7 +2513,22 @@ def run_daemon():
             request_mtime = 0.0
         if request_mtime and request_mtime != last_request_mtime:
             last_request_mtime = request_mtime
-            handle_requests(item_map)
+            done = handle_requests(item_map)
+            target = rebuild_target(done)
+            if target:
+                # The app has just opened its own menu, which fills it in: look again
+                # shortly, and once more for a slow menu.
+                now = time.monotonic()
+                rebuild_times.extend([(now + 0.9, target), (now + 2.5, target)])
+
+        if rebuild_times:
+            now = time.monotonic()
+            due = [item for item in rebuild_times if item[0] <= now]
+            if due:
+                rebuild_times[:] = [item for item in rebuild_times if item[0] > now]
+                for _, address in due:
+                    state.mark_dirty(address)
+                refresh_pending = True
 
         if refresh_pending:
             refresh_pending = False

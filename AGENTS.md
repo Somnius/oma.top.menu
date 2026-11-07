@@ -15,3 +15,4 @@
 - Test bin/oma-top-menu-hypr-input only with both HOME and XDG_CONFIG_HOME pointed at a temp dir; Lef's shell exports XDG_CONFIG_HOME, so HOME alone still hits the real ~/.config/hypr (this happened once on 2026-11-07, undone).
 - Keep working files (catalog downloads, review evidence, test scripts, screenshots, logs) in the gitignored .work/ folder, not /tmp or a scratchpad: a reboot would lose them.
 - Never create virtual input devices (uinput/evdev) or inject pointer or keyboard events on Lef's machine: on 2026-11-07 Hyprland crashed within seconds of one (cause not proven) and the session was lost. Ask Lef to perform gestures instead.
+- Warn Lef before moving keyboard focus to a test window (his typing lands in it) and restore focus right after; prefer tests that need no focus change.
