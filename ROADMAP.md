@@ -11,9 +11,8 @@ Updated at the end of every phase. One push per phase.
 | 2b | Restructure to repo root, new id, `service` + `bar-widget`, singleton lock, status message, snapshots streamed by the service | done (2026-11-07), see [testing](docs/testing.md) |
 | 2c | Live bar test | done on this machine (Floorp, Kotatogram, Omamail verified by screenshot); several monitors untested |
 | 2d | Fixed: Firefox-style AT-SPI menus, titled shell windows (Omamail), stale snapshots; recommended `follow_mouse = 2` | done (2026-11-07) |
-| 3 | (next) Firefox menus fill lazily: shortcut-profile fallback or lazy open; marketplace dry run (validator, manifest id uniqueness, README deps); submit | todo |
-| 3 | Fork decision: leaning to fork (the repo root already patched); add a shortcut-profile fallback for apps without a menu bar | in progress |
-| 4 | Build/fork, package as an Omarchy plugin with the daemon unit installed | todo |
+| 3 | Fork decision: forked from primo.global-menu; marketplace dry run (validator, id uniqueness, README deps); Firefox lazy menus | next |
+| 4 | Shortcut-profile fallback for apps with no menu bar (check licence and format of the GNOME extension's profiles first) | todo |
 | 5 | List on plugins.omarchy.org, release | todo |
 
 ## Checklist
