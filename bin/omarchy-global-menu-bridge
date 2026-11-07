@@ -370,6 +370,8 @@ def bound_snapshot(snapshot):
         snapshot["menubar"] = clean(original, per_menu, 0)[:MAX_TOP_ENTRIES]
         if len(json.dumps(snapshot, ensure_ascii=False)) <= MAX_SNAPSHOT_BYTES:
             break
+    else:
+        snapshot["menubar"] = []       # still too large after the smallest cap: publish no menu
     return snapshot
 
 

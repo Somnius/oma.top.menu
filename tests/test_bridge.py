@@ -384,5 +384,17 @@ class ExecNoShellTest(unittest.TestCase):
         self.assertNotIn("shell", calls[0][1])
 
 
+class SnapshotSizeFloorTest(unittest.TestCase):
+    def test_a_snapshot_that_stays_too_big_publishes_no_menu(self):
+        old = bridge.MAX_SNAPSHOT_BYTES
+        bridge.MAX_SNAPSHOT_BYTES = 200
+        try:
+            snap = {"appName": "a", "title": "t", "icon": "", "menubar": [
+                {"id": "m", "label": "File", "type": "menu", "items": [{"id": str(i), "label": "x" * 100, "type": "item"} for i in range(50)]}]}
+            self.assertEqual(bridge.bound_snapshot(snap)["menubar"], [])
+        finally:
+            bridge.MAX_SNAPSHOT_BYTES = old
+
+
 if __name__ == "__main__":
     unittest.main()
