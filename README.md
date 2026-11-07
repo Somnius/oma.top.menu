@@ -64,6 +64,9 @@ The plugin never changes your Hyprland config. (Values from the Hyprland wiki.)
 ## Side effect to know about
 To get menus out of Qt and GTK4 apps, the service registers an AT-SPI listener, which turns accessibility on for the whole session while it runs (`org.a11y.Status IsEnabled` becomes true). It goes back when the service stops. The cost of that is not measured yet.
 
+## Updates and compatibility
+Tested on Omarchy 4.5.0-3 with Hyprland 0.56.2. See [docs/compatibility.md](docs/compatibility.md) for what the plugin depends on, how plugin updates behave, and the checks to run after an Omarchy update (`python3 tests/check_shell_api.py`).
+
 ## Known limits
 - Firefox-family browsers (tested: Floorp) only fill a menu after it has been opened once, so some entries are empty at first and a click opens the menu inside the app. The menus you have already opened show up in the bar.
 - Apps that were already running before the service started keep an empty accessibility tree until restarted.

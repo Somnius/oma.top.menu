@@ -13,6 +13,8 @@ Item {
   readonly property string bridgePath: String(Qt.resolvedUrl("bin/omarchy-global-menu-bridge")).replace(/^file:\/\//, "")
   readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/oma-top-menu"
   property int failures: 0
+  property double startedAt: 0
+  property bool manualRestart: false
   // Latest menu snapshot, streamed by the daemon; every per-screen widget reads this.
   property var record: null
   property string statusState: ""
@@ -26,6 +28,7 @@ Item {
 
   function restart() {
     root.failures = 0
+    root.manualRestart = true
     daemon.running = false
     restartTimer.restart()
   }
@@ -62,8 +65,12 @@ Item {
         } catch (e) {}
       }
     }
+    onRunningChanged: { if (running) root.startedAt = Date.now() }
+    // Restart after any exit (a crash, a kill, a lost lock), but give up after
+    // five quick exits in a row so a broken setup does not loop forever.
     onExited: function(exitCode) {
-      if (exitCode === 0) return
+      if (root.manualRestart) { root.manualRestart = false; return }
+      if (Date.now() - root.startedAt > 10000) root.failures = 0
       root.failures += 1
       if (root.failures > 5) {
         root.writeStatus("error", "Oma Top Menu daemon keeps stopping (see: journalctl --user -b | grep oma-top-menu)")

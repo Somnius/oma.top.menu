@@ -1,0 +1,25 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile
+        run: python -m py_compile bin/omarchy-global-menu-bridge bin/oma-top-menu-hypr-input
+      - name: Manifest is valid JSON with the required fields
+        run: |
+          python - <<'PY'
+          import json
+          m = json.load(open("manifest.json"))
+          for k in ("schemaVersion", "id", "name", "version", "author", "description", "kinds", "entryPoints"):
+              assert k in m, k
+          assert not m["id"].startswith("omarchy.")
+          PY
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
