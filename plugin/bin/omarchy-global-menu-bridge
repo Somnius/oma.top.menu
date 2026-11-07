@@ -1060,10 +1060,10 @@ class AtspiMenuExtractor:
         "ATSPI_ROLE_MENU",
     }
 
-    def __init__(self, pid, app_name, address):
+    def __init__(self, pid, app_name, address, app_id=""):
         self.pid = pid
         self.app_name = app_name
-        self.app_id = app_name
+        self.app_id = app_id
         self.address = address
         self.counter = 0
         self.found = None  # (app, menubar_accessibles)
@@ -1165,6 +1165,7 @@ class AtspiMenuExtractor:
             count = desktop.get_child_count()
         except Exception:  # noqa: BLE001
             return False
+        pid_seen = False
         for i in range(count):
             try:
                 app = desktop.get_child_at_index(i)
@@ -1178,10 +1179,13 @@ class AtspiMenuExtractor:
                 continue
             if app_pid != self.pid:
                 continue
+            pid_seen = True
             menubar = self._walk_for_menubar(app)
             if menubar:
                 self.found = (app, menubar)
                 return True
+        if pid_seen:
+            return False  # the app is known by pid but has no menu bar
         return self._discover_by_name(desktop, count)
 
     @staticmethod
@@ -1320,9 +1324,9 @@ class AtspiMenuExtractor:
         return self._extract_children(menubar, "atspi", base_path)
 
 
-def _extract_atspi(pid, app_name, address):
+def _extract_atspi(pid, app_name, address, app_id=""):
     try:
-        extractor = AtspiMenuExtractor(pid, app_name, address)
+        extractor = AtspiMenuExtractor(pid, app_name, address, app_id)
         menubar = extractor.build()
         return menubar, extractor.found
     except Exception as exc:  # noqa: BLE001
@@ -1676,7 +1680,7 @@ class SnapshotBuilder:
                 mark_negative_cache(self.pid, "dbusmenu")
 
         if not check_negative_cache(self.pid, "at-spi"):
-            atspi, _ = _extract_atspi(self.pid, self.app_name, self.address)
+            atspi, _ = _extract_atspi(self.pid, self.app_name, self.address, self.app_id)
             if atspi:
                 clear_negative_cache(self.pid, "at-spi")
                 base.update({"source": "at-spi", "menubar": normalize_menus(atspi)})
