@@ -17,6 +17,7 @@ and show the workspace indicators on the right.
 
 ## Open questions
 - Does primo.global-menu render menus here with the system Python? (Phase 1)
+- Daemon must run with the system Python (`/usr/bin/python3`): the `env python3` shebang crashed once on a missing `gi`.
 - What does Ghostty expose? (not installed here yet)
 - CPU/memory cost of keeping AT-SPI always on.
 - Can a plugin install and start its own user systemd unit, or must that be a manual step? (primo's catalog status is "Manual setup")

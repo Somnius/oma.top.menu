@@ -8,3 +8,5 @@
 - Credit others: the Global Menu GNOME extension by Unmade760 (see NOTES.md), and primo.global-menu if forked.
 - Limit CPU use: nice -n 10 for long jobs, never above 80% of the machine.
 - Do not edit `~/.config/omarchy/shell.json` or install plugins without Lef's go-ahead.
+- Ask first before anything that takes control of the desktop: moving focus, launching or closing apps, switching workspaces.
+- Hyprland here takes Lua dispatch syntax, e.g. `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`.
