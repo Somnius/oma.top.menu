@@ -17,21 +17,22 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 ![An app with no menu bar of its own gets a generic menu](docs/screenshots/bar-fallback.png)
 
 ## What it does
-- A bar widget shows the focused window's menu and lets you click through it.
-- A background service (started by the plugin itself, one per shell) reads the menu from the app: `org.gtk.Menus`, `dbusmenu`, then the accessibility tree (AT-SPI). Apps without a menu bar of their own get a generic menu.
-- Real menus come from apps that expose them. Sandboxed apps (whose accessibility pid differs from the window pid) are matched by name.
+- A bar widget shows the menu of the window on that monitor and lets you click through it.
+- **Each monitor has its own menu.** The monitor you are using shows its focused window's menu; every other monitor shows the menu of the window on the workspace it is displaying. Different workspaces and apps on different monitors give different menus, and a monitor with no window shows nothing.
+- A background service (started by the plugin itself, one per shell) reads each menu from the app: `org.gtk.Menus`, `dbusmenu`, then the accessibility tree (AT-SPI). Apps without a menu bar of their own get a generic menu. With several windows of one app, the menu of the window whose title matches is used.
+- Sandboxed apps (whose accessibility pid differs from the window pid) are matched by name.
 
 ## Options panel
-Add the widget a second time, on the right (next to the tray) or inside the tray drawer, and it becomes an options icon instead of the menu strip: where you place it decides what it is (the left section is the menu, anywhere else is the icon). The `shell.json` entry is just `{ "id": "com.lefteros.somnius.oma-top-menu" }` in `bar.layout.right`; `omarchy bar put` will not add a second copy, so add it by hand or drag it in the bar editor.
+**Right-click the menu strip** to open the options panel. (Optionally add the widget a second time, on the right next to the tray or inside the tray drawer, to get a small options icon there: where a copy is placed decides what it is. The left section is the menu; anywhere else is the icon; the centre sections are not supported. Use `omarchy plugin remove` and the uninstall helper below to leave no extra entry behind.)
 
 ![Options panel](docs/screenshots/options-panel.png)
 
-Supported places: the left section for the menu, and the right section or the tray drawer for the icon. The bar tells a widget only a layout hint, not its section, so other places (the centre sections) are not supported.
-
-- **Focus behaviour**: Hover / Click / Off. It applies at once with `hyprctl eval`; *Save* writes a small marked block at the end of `~/.config/hypr/input.lua` (a timestamped backup first). Nothing is changed until you click.
-- **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces --section ...`.
-- **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). The workspace move edits your `shell.json` through Omarchy's own `omarchy bar move`, only when you click it. These are the widget's settings in `shell.json`, shared by the menu strip and the icon.
+- **Focus behaviour**: *System* (leave your Hyprland setting alone), Hover, Click or Off. Hover is Omarchy's default and moves focus as the pointer crosses windows, so a menu changes on the way to the bar; Click keeps the menu of the window you clicked. The choice is a setting of this widget (kept in `shell.json`) and the plugin applies it with `hyprctl`, again after every Hyprland reload. **No Hyprland file is edited**, and removing the plugin ends it (your own value returns at the next reload).
+- **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces ...` when you click it.
+- **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`.
 - **Restart menu service**.
+
+Every action the plugin takes, and how to undo it, is listed in [docs/actions.md](docs/actions.md). The Omarchy internals it relies on are in [docs/internals.md](docs/internals.md).
 
 ## Requirements
 - Omarchy with the Quattro shell, Hyprland.
@@ -42,26 +43,18 @@ Supported places: the left section for the menu, and the right section or the tr
 ```
 omarchy plugin add https://github.com/Somnius/oma.top.menu
 ```
-Then add the widget to the left side of your bar. To also move the workspace numbers to the right, edit `~/.config/omarchy/shell.json`: take `omarchy.workspaces` out of `bar.layout.left` and put it in `bar.layout.right`. The plugin never edits `shell.json` for you.
+Then put the widget in the left section of the bar (Omarchy's bar editor, or `omarchy bar put com.lefteros.somnius.oma-top-menu --section left`).
 
 ## Remove
-Run `bin/oma-top-menu-uninstall` first (it shows what it would clean; `--apply` does it). Omarchy's own removal leaves the options-icon entry, the saved `input.lua` block and the state folder behind. Then:
-
-Take `com.lefteros.somnius.oma-top-menu` out of `~/.config/omarchy/shell.json`, then `omarchy plugin remove com.lefteros.somnius.oma-top-menu` (or delete `~/.config/omarchy/plugins/com.lefteros.somnius.oma-top-menu`). The service stops with the plugin and removes its files in `~/.local/state/omarchy/oma-top-menu`.
+```
+bin/oma-top-menu-uninstall            # shows what it would clean
+bin/oma-top-menu-uninstall --apply    # cleans it (backs up shell.json first)
+omarchy plugin remove com.lefteros.somnius.oma-top-menu
+```
+A plain `omarchy plugin remove` is safe too: the daemon stops with the plugin, nothing is edited in your Hyprland files, and nothing of ours stays on disk except, if you added the optional second copy, its leftover entry in `shell.json` (which draws nothing and does no harm). The helper removes that entry as well. State lives in the runtime folder (cleared at logout).
 
 ## Recommended: focus on click, not on hover
-Omarchy's default is `follow_mouse = 1` (the cursor always changes focus). With it, moving the pointer up to the bar crosses other windows and the menu switches to them before you can click it. Set Hyprland to move keyboard focus only when you click:
-
-```lua
--- ~/.config/hypr/input.lua
-hl.config({
-  input = {
-    follow_mouse = 2,  -- 0: cursor never changes focus, 1: always (Omarchy default),
-                       -- 2: click to focus, 3: click does not even change keyboard focus
-  },
-})
-```
-The plugin never changes your Hyprland config. (Values from the Hyprland wiki.)
+With Omarchy's default (`follow_mouse = 1`) the menu follows the pointer across windows. Choose **Click** in the options panel for a menu that stays with the window you clicked. If you would rather set it in your own Hyprland config, put `follow_mouse = 2` in `~/.config/hypr/input.lua` and leave the panel on *System*.
 
 ## Side effect to know about
 To get menus out of Qt and GTK4 apps, the service registers an AT-SPI listener, which turns accessibility on for the whole session while it runs (`org.a11y.Status IsEnabled` becomes true). It goes back when the service stops. The cost of that is not measured yet.

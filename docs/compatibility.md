@@ -21,11 +21,17 @@ Run `python3 tests/check_shell_api.py` (greps the installed shell for every name
 ## Removing the plugin
 `omarchy plugin remove` disables the plugin and deletes its folder, but Omarchy's disable deletes only the first bar entry with the plugin id, so the options-icon copy would stay in `shell.json`; the saved `input.lua` block and the state folder also stay. Run `bin/oma-top-menu-uninstall` first (dry run by default, `--apply` to clean, with a `shell.json` backup), then `omarchy plugin remove`. Tested against a temp config. What the bar draws for an entry whose plugin is gone is not verified.
 
+## Multi-monitor (tested 2026-11-07 with a virtual monitor)
+`hyprctl output create headless` added a second monitor; the bar on it showed its own menu (Files) while the first showed another (Omamail/Kotatogram), also while focus moved between monitors; closing the window cleared that monitor's menu; removing the monitor returned to normal; one daemon throughout; idle CPU about 0.6%. Unit tests cover the monitor planning (focused, other, empty, stale `lastwindow`, special workspace, shell popup). Not tested: two windows of one app on two monitors (matching by frame title is unit-tested with stub accessibles only), clicking a menu item on a monitor that does not have focus, and a real second physical monitor.
+
+## Removal (tested 2026-11-07)
+Disable, move the folder aside and restart the shell with both bar entries present: no process left, no journal errors, nothing drawn for the leftover entry; the second entry stays in `shell.json` (Omarchy deletes only the first). State is in the runtime folder (tmpfs), and nothing is written to Hyprland files. Everything was restored byte-for-byte afterwards.
+
 ## Not covered by tests
 CI (Python 3.12) runs a compile check, a manifest check and unit tests of pure functions only: no Hyprland, QML, AT-SPI or PyGObject. `tests/check_shell_api.py` checks that names exist and two commands run; it cannot detect a changed signature or changed behaviour. The update, restart and kill tests above were run by hand, not automated. A change in at-spi2-core's accessibility semantics would silently fall back to the generic menu; there is no self-check for that yet.
 
 ## Known risks
-- A new Hyprland config format or renamed `follow_mouse` option would break the Focus behaviour control (the other controls would keep working). The saved block is plain Lua in `input.lua`, marked so it can be removed by hand.
+- A renamed `follow_mouse` option or a changed `hyprctl eval` would break the Focus behaviour control only (the other controls keep working). Nothing is written to Hyprland files, so a failure leaves your config untouched.
 - If Omarchy changes how widgets learn their section (`fixedEdge`), the icon-versus-menu rule would need a new signal.
 - AT-SPI trees differ per toolkit and version; apps update independently of this plugin.
 - `omarchy plugin add` installs the repository's current head, so what users get is whatever is on `main`.
