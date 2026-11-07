@@ -35,8 +35,29 @@ Panel {
   property int menuLeftIndex: -1
   property int workspaceIndex: -1
   property string note: ""
+  // "edit" is the full settings panel (right-click); "preview" is the small
+  // read-only summary shown by a left click on the options icon.
+  property string mode: "edit"
 
   function open() { root.controller.show(); root.refresh() }
+  function openEdit() {
+    if (root.opened && root.mode === "edit") { root.close(); return }
+    root.mode = "edit"
+    root.open()
+  }
+  function openPreview() {
+    if (root.opened && root.mode === "preview") { root.close(); return }
+    root.mode = "preview"
+    root.open()
+  }
+
+  readonly property string followLabel: {
+    var v = String(root.setting("followMouse", ""))
+    return v === "1" ? "Hover" : (v === "2" ? "Click" : (v === "0" ? "Off" : "System (your Hyprland setting)"))
+  }
+  readonly property string serviceLine: root.menuService
+    ? (root.menuService.statusState === "error" ? root.menuService.statusMessage : "Menu service: running")
+    : "Menu service: not available"
   function close() { root.controller.hide() }
   function switchPanel(direction) {
     if (root.bar && typeof root.bar.switchPanelFrom === "function")
@@ -136,8 +157,8 @@ Panel {
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(300))
-    contentHeight: panel.fittedContentHeight(content.implicitHeight)
+    contentWidth: panel.fittedContentWidth(Style.space(root.mode === "edit" ? 300 : 260))
+    contentHeight: panel.fittedContentHeight(root.mode === "edit" ? content.implicitHeight : previewContent.implicitHeight)
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -147,6 +168,7 @@ Panel {
 
       Column {
         id: content
+        visible: root.mode === "edit"
         width: parent.width
         spacing: Style.space(8)
 
@@ -158,15 +180,35 @@ Panel {
           font.pixelSize: Style.font.subtitle
           font.bold: true
         }
+        Row {
+          width: parent.width
+          spacing: Style.space(8)
+          Text {
+            width: parent.width - restartButton.width - parent.spacing
+            anchors.verticalCenter: parent.verticalCenter
+            wrapMode: Text.WordWrap
+            textFormat: Text.PlainText
+            color: root.menuService && root.menuService.statusState === "error" ? root.barForeground : Qt.darker(root.barForeground, 1.3)
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+            font.pixelSize: Style.font.caption
+            text: root.serviceLine
+          }
+          Button {
+            id: restartButton
+            text: "Restart service"
+            bordered: true
+            tooltipText: "Restart the menu service if the menus stop following your windows"
+            onClicked: { if (root.menuService && typeof root.menuService.restart === "function") root.menuService.restart() }
+          }
+        }
         Text {
           width: parent.width
           wrapMode: Text.WordWrap
+          textFormat: Text.PlainText
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: root.menuService && root.menuService.statusState === "error"
-            ? root.menuService.statusMessage
-            : root.monitorsText
+          text: root.monitorsText
         }
 
         PanelSectionHeader { text: "Focus behaviour"; foreground: root.barForeground }
@@ -263,12 +305,6 @@ Panel {
           text: root.note
         }
 
-        Button {
-          text: "Restart menu service"
-          bordered: true
-          onClicked: { if (root.menuService && typeof root.menuService.restart === "function") root.menuService.restart() }
-        }
-
         PanelSeparator {}
 
         Text {
@@ -284,6 +320,77 @@ Panel {
           text: "GitHub: Somnius/oma.top.menu"
           bordered: true
           onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/Somnius/oma.top.menu"])
+        }
+      }
+
+      // Left click on the options icon: a read-only summary, with a pointer to the editor.
+      Column {
+        id: previewContent
+        visible: root.mode === "preview"
+        width: parent.width
+        spacing: Style.space(6)
+
+        Text {
+          width: parent.width
+          textFormat: Text.PlainText
+          text: "Oma Top Menu"
+          color: root.barForeground
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.subtitle
+          font.bold: true
+        }
+        Text {
+          width: parent.width
+          wrapMode: Text.WordWrap
+          textFormat: Text.PlainText
+          color: Qt.darker(root.barForeground, 1.3)
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.caption
+          text: root.serviceLine + "\n" + root.monitorsText
+        }
+        Repeater {
+          model: [
+            { name: "Focus behaviour", value: root.followLabel },
+            { name: "Workspace numbers", value: root.workspaceSection === "center" ? "Middle" : (root.workspaceSection === "right" ? "Right" : (root.workspaceSection === "left" ? "Left, before the menu" : (root.workspaceSection === "left-after" ? "Left, after the menu" : "-"))) },
+            { name: "Position", value: root.setting("locked", false) === true ? "Locked" : "Free" },
+            { name: "Dividers", value: root.setting("dividers", false) === true ? "Shown" : "Hidden" },
+            { name: "Spacing", value: String(root.setting("spacing", "normal")).charAt(0).toUpperCase() + String(root.setting("spacing", "normal")).slice(1) },
+            { name: "App icon", value: root.setting("showAppIcon", true) === false ? "Hidden" : "Shown" },
+            { name: "Apps with no menu", value: root.setting("hideGeneric", false) === true ? "Nothing" : "Generic menu" }
+          ]
+          delegate: Row {
+            required property var modelData
+            width: previewContent.width
+            spacing: Style.space(6)
+            Text {
+              width: Math.round(parent.width * 0.55)
+              textFormat: Text.PlainText
+              text: modelData.name
+              color: Qt.darker(root.barForeground, 1.3)
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: Style.font.caption
+            }
+            Text {
+              width: parent.width - Math.round(parent.width * 0.55) - parent.spacing
+              wrapMode: Text.WordWrap
+              textFormat: Text.PlainText
+              text: modelData.value
+              color: root.barForeground
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+          }
+        }
+        PanelSeparator {}
+        Text {
+          width: parent.width
+          wrapMode: Text.WordWrap
+          textFormat: Text.PlainText
+          color: root.barForeground
+          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          font.pixelSize: Style.font.caption
+          text: "Right-click the icon to edit these settings."
         }
       }
     }

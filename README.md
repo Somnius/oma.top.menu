@@ -30,19 +30,23 @@ Drag the menu strip anywhere along the bar with the mouse (Omarchy's own bar dra
 Details, supported places and how the lock works: [docs/moving-the-menu.md](docs/moving-the-menu.md).
 
 ## Options panel
-**Right-click the menu strip** to open the options panel. (Optionally add the widget a second time, on the right next to the tray or inside the tray drawer, to get a small options icon there: where a copy is placed decides what it is. The left section is the menu; anywhere else is the icon; the centre sections are not supported. Use `omarchy plugin remove` and the uninstall helper below to leave no extra entry behind.)
+- **Right-click the menu strip** (or right-click the optional options icon) to open the settings editor.
+- **Left-click the optional options icon** for a small read-only preview of the current settings, with a note to right-click to edit them. (The strip's left click opens the menus, so the preview needs the icon: add the widget a second time on the right next to the tray, or inside the tray drawer. Where a copy sits decides what it is: the left section is the menu, anywhere else is the icon; the centre sections are not supported.)
 
-![Options panel](docs/screenshots/options-panel.png)
+![Options editor](docs/screenshots/options-panel.png)
 
-The optional options icon sits next to the tray chevron:
+![Preview shown by a left click on the options icon](docs/screenshots/options-preview.png)
+
+The optional icon sits next to the tray chevron:
 
 ![The optional options icon next to the tray](docs/screenshots/options-icon.png)
 
-- **Focus behaviour**: *System* (leave your Hyprland setting alone), Hover, Click or Off. Hover is Omarchy's default and moves focus as the pointer crosses windows, so a menu changes on the way to the bar; Click keeps the menu of the window you clicked. The choice is a setting of this widget (kept in `shell.json`) and the plugin applies it with `hyprctl`, again after every Hyprland reload. **No Hyprland file is edited**, and removing the plugin ends it (your own value returns at the next reload).
+- **Menu service**: its status and a **Restart service** button are at the top of the editor, for when the menus stop following your windows.
+- **Focus behaviour**: *System* (leave your Hyprland setting alone), Hover, Click or Off. Hover is Omarchy's default and moves focus as the pointer crosses windows, so a menu changes on the way to the bar; Click keeps the menu of the window you clicked. The choice is a setting of this widget (kept in `shell.json`) and the plugin applies it with `hyprctl`, again after every Hyprland reload. **No Hyprland file is edited**, and if you remove the plugin your own value returns at the next reload.
 - **Workspace numbers**: Left (just before the menu), Middle or Right (the start of that section), done with `omarchy bar move omarchy.workspaces ...` when you click it.
 - **Position**: Free, or Locked (puts the menu back if it is dragged away).
 - **Dividers**, **Spacing** (compact, normal, roomy), **App icon**, **Apps without a menu bar** (generic menu or nothing). These are the widget's settings in `shell.json`.
-- **Restart menu service**, and a **GitHub** button with a small creator note.
+- A **GitHub** button with a small creator note.
 
 Every action the plugin takes, and how to undo it, is listed in [docs/actions.md](docs/actions.md). The Omarchy internals it relies on are in [docs/internals.md](docs/internals.md).
 

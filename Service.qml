@@ -53,12 +53,13 @@ Item {
   signal lockGaveUp()
 
   // The panel moves the workspace numbers: do not mistake that for a drag.
-  function pauseLock() { root.lockPaused = true }
-  function resumeLock() { root.lockPaused = false; if (root.locked) root.recaptureLock() }
+  function pauseLock() { console.warn("oma-top-menu lock: paused"); root.lockPaused = true }
+  function resumeLock() { console.warn("oma-top-menu lock: resumed"); root.lockPaused = false; if (root.locked) root.recaptureLock() }
 
   function setLocked(value) {
     var v = value === true
     if (v === root.locked) return
+    console.warn("oma-top-menu lock:", v ? "on" : "off")
     root.locked = v
     root.restores = 0
     if (v) root.recaptureLock()
@@ -84,8 +85,9 @@ Item {
   function checkLayout(text) {
     var index = root.leftIndexIn(text)
     if (index === -2) return                       // unreadable right now: do nothing
-    if (root.lockCapture) { root.lockCapture = false; root.lockIndex = index; return }
+    if (root.lockCapture) { root.lockCapture = false; root.lockIndex = index; console.warn("oma-top-menu lock: remembered left index", index); return }
     if (root.lockPaused) return
+    if (root.locked && root.lockIndex >= 0 && index !== root.lockIndex && restoreProcess.running) console.warn("oma-top-menu lock: restore still running")
     if (!root.locked || root.lockIndex < 0 || index === root.lockIndex) { root.restores = 0; return }
     if (restoreProcess.running) return
     if (root.restores >= 5) {                      // something keeps moving it: stop fighting
@@ -95,6 +97,7 @@ Item {
       return
     }
     root.restores += 1
+    console.warn("oma-top-menu lock: menu is at left index", index, "- restoring to", root.lockIndex, "(restore", root.restores + ")")
     restoreProcess.command = ["omarchy", "bar", "move", root.pluginId, "--section", "left", "--index", String(root.lockIndex)]
     restoreProcess.running = true
   }
@@ -132,6 +135,7 @@ Item {
     function close(): void { root.ipcRequest("close") }
     function toggle(): void { root.ipcRequest("toggle") }
     function options(): void { root.ipcRequest("options") }
+    function preview(): void { root.ipcRequest("preview") }
   }
 
   // A Hyprland config reload resets the value, so apply it again.

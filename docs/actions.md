@@ -21,8 +21,8 @@ When each action happens, what it touches, and how to undo it. Nothing here runs
 | Panel: Workspace numbers | runs `omarchy bar move omarchy.workspaces ...`, which edits the bar layout in `shell.json` | click another position (Left puts them just before the menu strip) |
 | Panel: Position (Locked) | the widget's `locked` setting; while locked, the service reads `shell.json` every 1.5 s and, if the menu was dragged out of its place, runs `omarchy bar move <id> --section left --index <n>` **without a click** (at most five times in a row, then it unlocks itself) | choose *Free* |
 | Panel: GitHub button | runs `xdg-open https://github.com/Somnius/oma.top.menu` | close the browser tab |
-| Panel: Restart menu service | restarts the daemon | none needed |
-| Right-click on the strip, or click the options icon | opens the panel | Escape |
+| Panel: Restart service (top of the editor) | restarts the daemon | none needed |
+| Right-click on the strip or the icon: the editor; left-click on the icon: a read-only preview | opens a panel | Escape |
 
 ## Never
 The plugin does not edit Hyprland config files, install packages, use `sudo` or `pkexec`, make network connections, or change anything outside the items above. Earlier builds (before 2026-11-07, evening) wrote `~/.local/state/omarchy/oma-top-menu` and, on a *Save* click, a marked block at the end of `~/.config/hypr/input.lua`; both are gone from the current design. If you used that Save button, remove the block with `bin/oma-top-menu-hypr-input follow_mouse --remove` (it makes a backup first).

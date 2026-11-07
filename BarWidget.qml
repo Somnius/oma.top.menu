@@ -156,7 +156,7 @@ BarWidget {
   }
 
   function open(): void {
-    if (root.optionsRole) { if (optionsLoader.item) optionsLoader.item.open(); return }
+    if (root.optionsRole) { root.openPreview(); return }
     var i = root.openIndex >= 0 ? root.openIndex : firstSubmenuIndex()
     if (i < 0) return
     root.setOpenIndex(i)
@@ -166,7 +166,7 @@ BarWidget {
     root.setOpenIndex(-1)
   }
   function toggle(): void {
-    if (root.optionsRole) { if (optionsLoader.item) optionsLoader.item.toggle(); return }
+    if (root.optionsRole) { root.openPreview(); return }
     if (root.openIndex >= 0) root.setOpenIndex(-1)
     else root.open()
   }
@@ -189,6 +189,7 @@ BarWidget {
       if (!root.monitor || !root.monitor.focused) return
       // Only the menu strip answers "options", so two copies never open two panels.
       if (action === "options") { if (!root.optionsRole) root.openOptions(); return }
+      if (action === "preview") { if (root.optionsRole) root.openPreview(); return }
       if (root.optionsRole) return
       if (action === "open") root.open()
       else if (action === "close") root.close()
@@ -202,18 +203,33 @@ BarWidget {
     if (root.optionsRole && optionsLoader.item) optionsLoader.item.closeForPopoutSwitch()
   }
 
+  // Right-click: the full settings panel.
   function openOptions() {
     root.injectOptions()
-    if (optionsLoader.item) optionsLoader.item.open()
+    if (optionsLoader.item) optionsLoader.item.openEdit()
+  }
+
+  // Left click on the options icon: a small read-only summary of the settings.
+  function openPreview() {
+    root.injectOptions()
+    if (optionsLoader.item) optionsLoader.item.openPreview()
   }
 
   // The follow-mouse choice is a widget setting; the service applies it.
+  // Only the menu strip reports settings to the service, and only once its
+  // settings have really arrived: an unloaded copy (empty settings, or the
+  // options icon) would otherwise read "not locked" and switch the lock off.
+  property bool settingsInjected: false   // set when the bar first assigns this copy its settings
+  readonly property bool settingsReady: !root.optionsRole && root.settingsInjected
+
   function syncLock() {
+    if (!root.settingsReady) return
     if (root.menuService && typeof root.menuService.setLocked === "function")
       root.menuService.setLocked(root.setting("locked", false) === true)
   }
 
   function syncFollowMouse() {
+    if (!root.settingsReady) return
     if (root.menuService && typeof root.menuService.setFollowMouse === "function")
       root.menuService.setFollowMouse(root.setting("followMouse", ""))
   }
@@ -228,7 +244,7 @@ BarWidget {
     p.menuService = root.menuService
   }
   onBarChanged: root.injectOptions()
-  onSettingsChanged: { root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
+  onSettingsChanged: { root.settingsInjected = true; root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
   onMenuServiceChanged: { root.injectOptions(); root.syncFollowMouse(); root.syncLock() }
 
   Loader {
@@ -251,7 +267,10 @@ BarWidget {
     tooltipText: "Oma Top Menu options"
     hasVisualContent: true
     fixedWidth: root.vertical ? -1 : Style.bar.iconSlot
-    onPressed: function(buttonCode) { if (buttonCode === Qt.LeftButton) root.toggle() }
+    onPressed: function(buttonCode) {
+      if (buttonCode === Qt.LeftButton) root.openPreview()
+      else if (buttonCode === Qt.RightButton) root.openOptions()
+    }
     Item {
       anchors.centerIn: parent
       width: Style.bar.iconSize
