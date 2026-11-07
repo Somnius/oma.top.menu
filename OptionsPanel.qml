@@ -20,12 +20,15 @@ Panel {
 
   readonly property var rec: root.menuService && root.menuService.record ? root.menuService.record : null
   readonly property string monitorsText: {
-    if (!root.rec) return "Waiting for a window"
-    if (!root.rec.monitors) return "Showing " + root.rec.appName + " (" + root.rec.source + ")"
+    if (!root.rec) return strings.t("status.waiting", "Waiting for a window")
+    if (!root.rec.monitors) return strings.t("monitors.showing", "Showing %1 (%2)").arg(root.rec.appName).arg(root.rec.source)
     var lines = []
     for (var name in root.rec.monitors) {
       var snap = root.rec.monitors[name]
-      lines.push((name || "screen") + ": " + (snap ? snap.appName + " (" + snap.source + ")" : "no window"))
+      var label = name || strings.t("monitors.screen", "screen")
+      lines.push(snap
+        ? strings.t("monitors.line", "%1: %2 (%3)").arg(label).arg(snap.appName).arg(snap.source)
+        : strings.t("monitors.line.none", "%1: no window").arg(label))
     }
     return lines.join("\n")
   }
@@ -34,6 +37,8 @@ Panel {
   property string workspaceSection: ""
   property int menuLeftIndex: -1
   property int workspaceIndex: -1
+  Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
+
   property string note: ""
   // "edit" is the full settings panel (right-click); "preview" is the small
   // read-only summary shown by a left click on the options icon.
@@ -53,11 +58,11 @@ Panel {
 
   readonly property string followLabel: {
     var v = String(root.setting("followMouse", ""))
-    return v === "1" ? "Hover" : (v === "2" ? "Click" : (v === "0" ? "Off" : "System (your Hyprland setting)"))
+    return v === "1" ? strings.t("focus.hover", "Hover") : (v === "2" ? strings.t("focus.click", "Click") : (v === "0" ? strings.t("focus.off", "Off") : strings.t("focus.system.long", "System (your Hyprland setting)")))
   }
   readonly property string serviceLine: root.menuService
-    ? (root.menuService.statusState === "error" ? root.menuService.statusMessage : "Menu service: running")
-    : "Menu service: not available"
+    ? (root.menuService.statusState === "error" ? root.menuService.statusMessage : strings.t("status.running", "Menu service: running"))
+    : strings.t("status.unavailable", "Menu service: not available")
   function close() { root.controller.hide() }
   function switchPanel(direction) {
     if (root.bar && typeof root.bar.switchPanelFrom === "function")
@@ -142,7 +147,7 @@ Panel {
     onExited: function(exitCode) {
       if (exitCode === 0) {
         root.workspaceSection = mover.targetSection
-        root.note = "Workspace numbers moved."
+        root.note = strings.t("note.moved", "Workspace numbers moved.")
       }
     }
   }
@@ -172,7 +177,7 @@ Panel {
         Text {
           textFormat: Text.PlainText
           width: parent.width
-          text: "Oma Top Menu"
+          text: strings.t("title", "Oma Top Menu")
           color: root.barForeground
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.subtitle
@@ -193,9 +198,9 @@ Panel {
           }
           Button {
             id: restartButton
-            text: "Restart service"
+            text: strings.t("service.restart", "Restart service")
             bordered: true
-            tooltipText: "Restart the menu service if the menus stop following your windows"
+            tooltipText: strings.t("service.restart.tip", "Restart the menu service if the menus stop following your windows")
             onClicked: { if (root.menuService && typeof root.menuService.restart === "function") root.menuService.restart() }
           }
         }
@@ -209,16 +214,16 @@ Panel {
           text: root.monitorsText
         }
 
-        PanelSectionHeader { text: "Focus behaviour"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("focus.title", "Focus behaviour"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "system", label: "System" }, { value: "1", label: "Hover" }, { value: "2", label: "Click" }, { value: "0", label: "Off" }]
+          options: [{ value: "system", label: strings.t("focus.system", "System") }, { value: "1", label: strings.t("focus.hover", "Hover") }, { value: "2", label: strings.t("focus.click", "Click") }, { value: "0", label: strings.t("focus.off", "Off") }]
           value: (/^[0-3]$/.test(String(root.setting("followMouse", "")))) ? String(root.setting("followMouse", "")) : "system"
           onChanged: function(v) {
             var chosen = v === "system" ? "" : v
             root.persist({ followMouse: chosen })
             if (root.menuService && typeof root.menuService.setFollowMouse === "function")
               root.menuService.setFollowMouse(chosen)
-            root.note = chosen === "" ? "Your own Hyprland setting applies from the next Hyprland reload." : ""
+            root.note = chosen === "" ? strings.t("note.system", "Your own Hyprland setting applies from the next Hyprland reload.") : ""
           }
         }
         Text {
@@ -228,19 +233,19 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "Hover moves focus as the pointer crosses windows, so a menu changes on the way to the bar. Click keeps the menu of the window you clicked. Kept in this widget's settings and applied by the plugin (nothing is written to your Hyprland files); if you remove the plugin, your own setting returns at the next Hyprland reload."
+          text: strings.t("focus.hint", "Hover moves focus as the pointer crosses windows, so a menu changes on the way to the bar. Click keeps the menu of the window you clicked. Kept in this widget's settings and applied by the plugin (nothing is written to your Hyprland files); if you remove the plugin, your own setting returns at the next Hyprland reload.")
         }
 
-        PanelSectionHeader { text: "Workspace numbers"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("workspaces.title", "Workspace numbers"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "left", label: "Left" }, { value: "center", label: "Middle" }, { value: "right", label: "Right" }]
+          options: [{ value: "left", label: strings.t("workspaces.left", "Left") }, { value: "center", label: strings.t("workspaces.middle", "Middle") }, { value: "right", label: strings.t("workspaces.right", "Right") }]
           value: root.workspaceSection
           onChanged: function(v) { root.moveWorkspaces(v) }
         }
 
-        PanelSectionHeader { text: "Position"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("position.title", "Position"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "free", label: "Free" }, { value: "locked", label: "Locked" }]
+          options: [{ value: "free", label: strings.t("position.free", "Free") }, { value: "locked", label: strings.t("position.locked", "Locked") }]
           value: root.setting("locked", false) === true ? "locked" : "free"
           onChanged: function(v) { root.persist({ locked: v === "locked" }) }
         }
@@ -251,33 +256,33 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "Locked: the mouse cannot drag the menu out of its place (it shows a not-allowed cursor). Clicks, hover and right-click work as usual. Omarchy's own commands and the bar editor can still move it."
+          text: strings.t("position.hint", "Locked: the mouse cannot drag the menu out of its place (it shows a not-allowed cursor). Clicks, hover and right-click work as usual. Omarchy's own commands and the bar editor can still move it.")
         }
 
-        PanelSectionHeader { text: "Dividers"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("dividers.title", "Dividers"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "off", label: "Hidden" }, { value: "on", label: "Shown" }]
+          options: [{ value: "off", label: strings.t("common.hidden", "Hidden") }, { value: "on", label: strings.t("common.shown", "Shown") }]
           value: root.setting("dividers", false) === true ? "on" : "off"
           onChanged: function(v) { root.persist({ dividers: v === "on" }) }
         }
 
-        PanelSectionHeader { text: "Spacing"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("spacing.title", "Spacing"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "compact", label: "Compact" }, { value: "normal", label: "Normal" }, { value: "roomy", label: "Roomy" }]
+          options: [{ value: "compact", label: strings.t("spacing.compact", "Compact") }, { value: "normal", label: strings.t("spacing.normal", "Normal") }, { value: "roomy", label: strings.t("spacing.roomy", "Roomy") }]
           value: String(root.setting("spacing", "normal"))
           onChanged: function(v) { root.persist({ spacing: v }) }
         }
 
-        PanelSectionHeader { text: "App icon"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("appicon.title", "App icon"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "show", label: "Shown" }, { value: "hide", label: "Hidden" }]
+          options: [{ value: "show", label: strings.t("common.shown", "Shown") }, { value: "hide", label: strings.t("common.hidden", "Hidden") }]
           value: root.setting("showAppIcon", true) === false ? "hide" : "show"
           onChanged: function(v) { root.persist({ showAppIcon: v === "show" }) }
         }
 
-        PanelSectionHeader { text: "Apps without a menu bar"; foreground: root.barForeground }
+        PanelSectionHeader { text: strings.t("generic.title", "Apps without a menu bar"); foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "show", label: "Generic menu" }, { value: "hide", label: "Nothing" }]
+          options: [{ value: "show", label: strings.t("generic.menu", "Generic menu") }, { value: "hide", label: strings.t("generic.nothing", "Nothing") }]
           value: root.setting("hideGeneric", false) === true ? "hide" : "show"
           onChanged: function(v) { root.persist({ hideGeneric: v === "hide" }) }
         }
@@ -302,10 +307,10 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "Oma Top Menu, made by Lef (Somnius). Free software, GPL-2.0."
+          text: strings.t("about.credit", "Oma Top Menu, made by Lef (Somnius). Free software, GPL-2.0.")
         }
         Button {
-          text: "GitHub: Somnius/oma.top.menu"
+          text: strings.t("about.github", "GitHub: Somnius/oma.top.menu")
           bordered: true
           onClicked: Quickshell.execDetached(["xdg-open", "https://github.com/Somnius/oma.top.menu"])
         }
@@ -321,7 +326,7 @@ Panel {
         Text {
           width: parent.width
           textFormat: Text.PlainText
-          text: "Oma Top Menu"
+          text: strings.t("title", "Oma Top Menu")
           color: root.barForeground
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.subtitle
@@ -338,13 +343,13 @@ Panel {
         }
         Repeater {
           model: [
-            { name: "Focus behaviour", value: root.followLabel },
-            { name: "Workspace numbers", value: root.workspaceSection === "center" ? "Middle" : (root.workspaceSection === "right" ? "Right" : (root.workspaceSection === "left" ? "Left, before the menu" : (root.workspaceSection === "left-after" ? "Left, after the menu" : "-"))) },
-            { name: "Position", value: root.setting("locked", false) === true ? "Locked" : "Free" },
-            { name: "Dividers", value: root.setting("dividers", false) === true ? "Shown" : "Hidden" },
-            { name: "Spacing", value: String(root.setting("spacing", "normal")).charAt(0).toUpperCase() + String(root.setting("spacing", "normal")).slice(1) },
-            { name: "App icon", value: root.setting("showAppIcon", true) === false ? "Hidden" : "Shown" },
-            { name: "Apps with no menu", value: root.setting("hideGeneric", false) === true ? "Nothing" : "Generic menu" }
+            { name: strings.t("focus.title", "Focus behaviour"), value: root.followLabel },
+            { name: strings.t("workspaces.title", "Workspace numbers"), value: root.workspaceSection === "center" ? strings.t("workspaces.middle", "Middle") : (root.workspaceSection === "right" ? strings.t("workspaces.right", "Right") : (root.workspaceSection === "left" ? strings.t("workspaces.left.before", "Left, before the menu") : (root.workspaceSection === "left-after" ? strings.t("workspaces.left.after", "Left, after the menu") : "-"))) },
+            { name: strings.t("position.title", "Position"), value: root.setting("locked", false) === true ? strings.t("position.locked", "Locked") : strings.t("position.free", "Free") },
+            { name: strings.t("dividers.title", "Dividers"), value: root.setting("dividers", false) === true ? strings.t("common.shown", "Shown") : strings.t("common.hidden", "Hidden") },
+            { name: strings.t("spacing.title", "Spacing"), value: ({ compact: strings.t("spacing.compact", "Compact"), normal: strings.t("spacing.normal", "Normal"), roomy: strings.t("spacing.roomy", "Roomy") })[String(root.setting("spacing", "normal"))] || "" },
+            { name: strings.t("appicon.title", "App icon"), value: root.setting("showAppIcon", true) === false ? strings.t("common.hidden", "Hidden") : strings.t("common.shown", "Shown") },
+            { name: strings.t("generic.short", "Apps with no menu"), value: root.setting("hideGeneric", false) === true ? strings.t("generic.nothing", "Nothing") : strings.t("generic.menu", "Generic menu") }
           ]
           delegate: Row {
             required property var modelData
@@ -378,7 +383,7 @@ Panel {
           color: root.barForeground
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "Right-click the icon to edit these settings."
+          text: strings.t("preview.hint", "Right-click the icon to edit these settings.")
         }
       }
     }

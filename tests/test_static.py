@@ -106,7 +106,8 @@ class QmlPlainTextTest(unittest.TestCase):
         import re
         for qml in sorted(ROOT.glob("*.qml")):
             for m in re.finditer(r'(?m)^\s*tooltipText:\s*(.*)$', qml.read_text()):
-                self.assertRegex(m.group(1), r'^"[^"\n]*"\s*$', f"{qml.name}: a tooltip that is not a single string literal")
+                # a literal, or a string from the plugin's own catalog (strings.t("key", "literal")); never app data
+                self.assertRegex(m.group(1), r'^("[^"\n]*"|strings\.t\("[^"\n]+", "[^"\n]*"\))\s*$', f"{qml.name}: a tooltip that is not a literal or a catalog string")
 
     def test_no_shell_in_the_widgets(self):
         for qml in sorted(ROOT.glob("*.qml")):

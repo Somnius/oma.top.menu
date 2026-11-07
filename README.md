@@ -75,6 +75,9 @@ With Omarchy's default (`follow_mouse = 1`) the menu follows the pointer across 
 ## Side effect to know about
 To get menus out of Qt and GTK4 apps, the service registers an AT-SPI listener, which turns accessibility on for the whole session while it runs (`org.a11y.Status IsEnabled` becomes true). It goes back when the service stops. The cost of that is not measured yet.
 
+## Translations
+The plugin follows the language chosen in Omarchy (Setup > Language) through the shell's own `Translations` component. It ships English only, in `i18n/en.json`; to add a language, copy that file to `i18n/<code>.json` (for example `da.json` or `pt-BR.json`) and translate the values. A missing string falls back to the base language, then to English. The generic menu the daemon builds for apps without a menu bar (File, Edit, View...) and the menus of other apps are not translated by this plugin.
+
 ## Updates and compatibility
 Tested on Omarchy 4.5.0-3 with Hyprland 0.56.2. See [docs/compatibility.md](docs/compatibility.md) for what the plugin depends on, how plugin updates behave, and the checks to run after an Omarchy update (`python3 tests/check_shell_api.py`).
 

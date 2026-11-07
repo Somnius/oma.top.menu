@@ -26,6 +26,8 @@ BarWidget {
   // Placement decides the role. The bar gives a widget in the left section
   // fixedEdge "start"; anywhere else (right section, tray, centre) it is the
   // options icon. Both share one settings record.
+  Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
+
   readonly property bool optionsRole: root.fixedEdge !== "start"
   readonly property bool dividers: root.setting("dividers", false) === true
   readonly property string spacingMode: String(root.setting("spacing", "normal"))
@@ -392,7 +394,7 @@ BarWidget {
     visible: root.optionsRole
     anchors.fill: parent
     bar: root.bar
-    tooltipText: "Oma Top Menu options"
+    tooltipText: strings.t("icon.tooltip", "Oma Top Menu options")
     hasVisualContent: true
     fixedWidth: root.vertical ? -1 : Style.bar.iconSlot
     onPressed: function(buttonCode) {

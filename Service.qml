@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import qs.Commons
 
 // Owns the single menu bridge daemon (one per shell, not one per screen).
 // Checks python-gobject and AT-SPI first and publishes the result in
@@ -13,6 +14,8 @@ Item {
   readonly property string python: "/usr/bin/python3"
   readonly property string bridgePath: String(Qt.resolvedUrl("bin/omarchy-global-menu-bridge")).replace(/^file:\/\//, "")
   readonly property string stateDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/oma-top-menu"
+  Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
+
   property int failures: 0
   property double startedAt: 0
   property bool manualRestart: false
@@ -98,7 +101,7 @@ Item {
         root.writeStatus("ok", "")
         daemon.running = true
       } else {
-        root.writeStatus("error", "Oma Top Menu needs python-gobject and at-spi2-core (pacman -S python-gobject)")
+        root.writeStatus("error", strings.t("error.deps", "Oma Top Menu needs python-gobject and at-spi2-core (pacman -S python-gobject)"))
       }
     }
   }
@@ -122,7 +125,7 @@ Item {
       if (Date.now() - root.startedAt > 10000) root.failures = 0
       root.failures += 1
       if (root.failures > 5) {
-        root.writeStatus("error", "Oma Top Menu daemon keeps stopping (see: journalctl --user -b | grep oma-top-menu)")
+        root.writeStatus("error", strings.t("error.daemon", "Oma Top Menu daemon keeps stopping (see: journalctl --user -b | grep oma-top-menu)"))
         return
       }
       restartTimer.restart()
