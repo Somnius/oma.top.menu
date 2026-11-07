@@ -47,9 +47,11 @@ import sys
 import time
 from pathlib import Path
 
+# Transient state lives in the runtime directory (tmpfs, cleared at logout), so
+# nothing is left on disk after the plugin is removed.
 STATE_DIR = Path(
-    os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local/state")
-) / "omarchy" / "oma-top-menu"
+    os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+) / "oma-top-menu"
 ACTIVE_FILE = STATE_DIR / "active.json"
 REQUEST_FILE = STATE_DIR / "request.json"
 MENU_CONFIG_FILE = Path(
@@ -1079,7 +1081,8 @@ class AtspiMenuExtractor:
         "ATSPI_ROLE_MENU",
     }
 
-    def __init__(self, pid, app_name, address, app_id=""):
+    def __init__(self, pid, app_name, address, app_id="", title=""):
+        self.title = title
         self.pid = pid
         self.app_name = app_name
         self.app_id = app_id
@@ -1173,6 +1176,34 @@ class AtspiMenuExtractor:
             return menubar
         return self._find_role(acc, {"ATSPI_ROLE_MENU"})
 
+    def _frame_menubar(self, app):
+        """AT-SPI menus belong to the application, but two windows of one app
+        have two frames. Prefer the menu bar inside the frame whose name is
+        this window's title, so each monitor gets its own window's menu."""
+        want = self._norm(self.title)
+        if len(want) < 4:
+            return None
+        frames = []
+        try:
+            for i in range(min(app.get_child_count(), 200)):
+                child = app.get_child_at_index(i)
+                if child is not None and self._role(child) in (
+                    "ATSPI_ROLE_FRAME", "ATSPI_ROLE_WINDOW", "ATSPI_ROLE_DIALOG"
+                ):
+                    frames.append(child)
+        except Exception:  # noqa: BLE001
+            return None
+        if len(frames) < 2:
+            return None  # one window: nothing to disambiguate
+        exact = [f for f in frames if self._norm(self._name(f)) == want]
+        loose = [f for f in frames if len(self._norm(self._name(f))) >= 4
+                 and (self._norm(self._name(f)) in want or want in self._norm(self._name(f)))]
+        for frame in (exact or loose):
+            menubar = self._walk_for_menubar(frame)
+            if menubar:
+                return menubar
+        return None
+
     def discover(self):
         Atspi = _atspi_import()
         try:
@@ -1199,7 +1230,7 @@ class AtspiMenuExtractor:
             if app_pid != self.pid:
                 continue
             pid_seen = True
-            menubar = self._walk_for_menubar(app)
+            menubar = self._frame_menubar(app) or self._walk_for_menubar(app)
             if menubar:
                 self.found = (app, menubar)
                 return True
@@ -1227,7 +1258,7 @@ class AtspiMenuExtractor:
                 continue
             if len(name) < 4 or not any(w in name or name in w for w in want):
                 continue
-            menubar = self._walk_for_menubar(app)
+            menubar = self._frame_menubar(app) or self._walk_for_menubar(app)
             if menubar:
                 self.found = (app, menubar)
                 return True
@@ -1368,9 +1399,9 @@ class AtspiMenuExtractor:
         return self._extract_children(menubar, "atspi", base_path)
 
 
-def _extract_atspi(pid, app_name, address, app_id=""):
+def _extract_atspi(pid, app_name, address, app_id="", title=""):
     try:
-        extractor = AtspiMenuExtractor(pid, app_name, address, app_id)
+        extractor = AtspiMenuExtractor(pid, app_name, address, app_id, title)
         menubar = extractor.build()
         return menubar, extractor.found
     except Exception as exc:  # noqa: BLE001
@@ -1726,7 +1757,7 @@ class SnapshotBuilder:
                 mark_negative_cache(self.pid, "dbusmenu")
 
         if not check_negative_cache(self.pid, "at-spi"):
-            atspi, _ = _extract_atspi(self.pid, self.app_name, self.address, self.app_id)
+            atspi, _ = _extract_atspi(self.pid, self.app_name, self.address, self.app_id, self.title)
             if atspi:
                 clear_negative_cache(self.pid, "at-spi")
                 base.update({"source": "at-spi", "menubar": normalize_menus(atspi)})
@@ -2101,12 +2132,6 @@ class MenuChangeWatcher:
         self.on_change = None
 
 
-def run_once():
-    snapshot = SnapshotBuilder(active_window()).build()
-    write_snapshot(snapshot)
-    log(f"wrote snapshot for '{snapshot['appName']}' (source={snapshot['source']})")
-
-
 _LOCK_HANDLE = None
 
 
@@ -2131,6 +2156,167 @@ def remove_state_files():
             pass
 
 
+def hypr_json(args):
+    raw = run_hyprctl(["-j"] + args)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+
+
+def _is_candidate(client):
+    return bool(client) and client.get("mapped", True) and not client.get("hidden", False) \
+        and not is_shell_window(client)
+
+
+def plan_monitors(monitors, workspaces, clients, active, previous=None):
+    """Which window does each monitor's bar describe?
+
+    The focused monitor shows the active window; every other monitor shows the
+    last-focused window of the workspace it currently displays (or that
+    monitor's special workspace, when one is open). Pure function: no Hyprland
+    access, so it is unit-tested with fixtures. `previous` keeps a monitor's
+    last real window while a shell popup holds focus.
+    """
+    previous = previous or {}
+    clients = clients or []
+    by_addr = {c.get("address"): c for c in clients}
+    ws_by_id = {w.get("id"): w for w in (workspaces or [])}
+    plan = {}
+    for mon in monitors or []:
+        name = mon.get("name")
+        if name is None:
+            continue
+        special = (mon.get("specialWorkspace") or {}).get("id") or 0
+        ws_id = special or (mon.get("activeWorkspace") or {}).get("id")
+        win = None
+        if mon.get("focused") and active:
+            active_ws = (active.get("workspace") or {}).get("id")
+            if active_ws == ws_id or not active_ws:
+                if _is_candidate(active):
+                    win = by_addr.get(active.get("address")) or active
+                elif is_shell_window(active):
+                    win = previous.get(name)
+                    if win is not None and win.get("address") not in by_addr:
+                        win = None
+        if win is None and not (mon.get("focused") and active and is_shell_window(active)):
+            last = by_addr.get((ws_by_id.get(ws_id) or {}).get("lastwindow"))
+            if last and (last.get("workspace") or {}).get("id") == ws_id and _is_candidate(last):
+                win = last
+            else:
+                on_ws = [c for c in clients if (c.get("workspace") or {}).get("id") == ws_id and _is_candidate(c)]
+                on_ws.sort(key=lambda c: c.get("focusHistoryID", 1 << 30))
+                win = on_ws[0] if on_ws else None
+        plan[name] = win
+    return plan
+
+
+def namespace_ids(snapshot, namespace):
+    """Prefix every menu item id with the window address, so two monitors'
+    snapshots never share an id."""
+    def walk(items):
+        for item in items or []:
+            if isinstance(item, dict):
+                item["id"] = f"{namespace}:{item.get('id', '')}"
+                walk(item.get("items"))
+    if isinstance(snapshot, dict):
+        walk(snapshot.get("menubar"))
+    return snapshot
+
+
+def load_item_map_all(record):
+    mapping = {}
+    for snap in (record.get("monitors") or {}).values():
+        if isinstance(snap, dict):
+            mapping.update(load_item_map(snap))
+    return mapping
+
+
+class MenuState:
+    """Per-monitor menu snapshots, cached by window address."""
+
+    def __init__(self):
+        self.cache = {}
+        self.previous = {}
+        self.dirty = set()
+        self.last_focused = None
+        self.record = {"version": 2, "focused": "", "monitors": {}}
+
+    def mark_dirty(self, address):
+        if address:
+            self.dirty.add(address)
+
+    def refresh(self, publish=None, on_focused=None):
+        monitors = hypr_json(["monitors"])
+        active = active_window()
+        if not monitors:
+            ws = (active.get("workspace") or {}).get("id")
+            monitors = [{"name": "", "focused": True, "activeWorkspace": {"id": ws}}]
+        workspaces = hypr_json(["workspaces"]) or []
+        clients = hypr_json(["clients"]) or []
+        plan = plan_monitors(monitors, workspaces, clients, active, self.previous)
+        focused = next((m.get("name") for m in monitors if m.get("focused")), "")
+        live = {c.get("address") for c in clients}
+        for address in list(self.cache):
+            if address not in live:
+                del self.cache[address]
+        monitors_out = {n: self.record["monitors"].get(n) for n in plan}
+        self.record = {"version": 2, "focused": focused, "monitors": monitors_out}
+        # Focused monitor first, so its menu is published before the others are built.
+        for name in sorted(plan, key=lambda n: n != focused):
+            win = plan[name]
+            if win is None:
+                monitors_out[name] = None
+                continue
+            self.previous[name] = win
+            address = win.get("address")
+            entry = self.cache.get(address)
+            new_focus = name == focused and address != self.last_focused
+            age = time.monotonic() - entry["built"] if entry else None
+            if entry is None or address in self.dirty or (new_focus and age > 1.0) or age > 600:
+                snap = SnapshotBuilder(win).build()
+                namespace_ids(snap, address)
+                entry = {"snapshot": snap, "built": time.monotonic()}
+                self.cache[address] = entry
+                self.dirty.discard(address)
+                log(f"built '{snap['appName']}' for monitor {name or '-'} (source={snap['source']})")
+            monitors_out[name] = entry["snapshot"]
+            if name == focused:
+                self.last_focused = address
+                if on_focused:
+                    on_focused(entry["snapshot"], address)
+            if publish:
+                publish(self.record)
+        for name in list(self.previous):
+            if name not in plan:
+                del self.previous[name]
+        # Always publish the final record: a monitor whose window went away has
+        # nothing to build, so no earlier step published its change.
+        if publish:
+            publish(self.record)
+        return self.record
+
+
+def run_once():
+    record = MenuState().refresh()
+    write_snapshot(record)
+    focused = (record["monitors"].get(record["focused"]) or {})
+    log(f"wrote snapshot for '{focused.get('appName')}' (source={focused.get('source')})")
+
+
+WATCHED_EVENTS = (
+    "activewindow", "focusedmon", "workspace", "activeworkspace", "moveworkspace",
+    "activespecial", "openwindow", "closewindow", "movewindow", "monitoradded",
+    "monitorremoved", "createworkspace", "destroyworkspace",
+)
+
+
+def event_matters(line):
+    name = line.split(">>", 1)[0]
+    base = name[:-2] if name.endswith("v2") else name
+    return base in WATCHED_EVENTS
+
+
 def run_daemon():
     global DEBUG  # noqa: F811
     # Before any AT-SPI side effect: a second instance must exit untouched.
@@ -2140,18 +2326,14 @@ def run_daemon():
     initial_ppid = os.getppid()
     atexit.register(remove_state_files)
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
-    initial_window = active_window()
-    snapshot = SnapshotBuilder(initial_window).build()
-    write_snapshot(snapshot)
-    item_map = load_item_map(snapshot)
-    watcher = MenuChangeWatcher()
-    watcher.watch(snapshot, lambda: refresh_on_menu_change())
-    last_window_key = (initial_window.get("address"), initial_window.get("pid"), initial_window.get("class"))
 
+    state = MenuState()
+    item_map = {}
+    watcher = MenuChangeWatcher()
+    refresh_pending = True
     sock = connect_events()
     buffer = ""
     last_request_mtime = 0.0
-    refresh_pending = False
 
     # Make apps publish their accessible menus. Without an AT-SPI event
     # listener registered, at-spi2-core >= 2.62 reports accessibility as
@@ -2161,33 +2343,20 @@ def run_daemon():
     force_a11y_enabled()
     last_a11y_check = time.monotonic()
 
-    def refresh_for(window):
-        nonlocal snapshot, item_map, refresh_pending
-        refresh_pending = False
-        built = SnapshotBuilder(window).build()
-        # Focus may have moved while the menu was being extracted (some apps
-        # take seconds): drop the stale result and rebuild for the new window.
-        current = active_window()
-        if current and (current.get("address"), current.get("pid"), current.get("class")) != (
-            window.get("address"), window.get("pid"), window.get("class")
-        ) and not is_shell_window(current):
-            refresh_pending = True
-            return
-        snapshot = built
-        write_snapshot(snapshot)
-        item_map = load_item_map(snapshot)
-        watcher.watch(snapshot, lambda: refresh_on_menu_change())
-        log(f"refreshed '{snapshot['appName']}' (source={snapshot['source']})")
+    def publish(record):
+        nonlocal item_map
+        write_snapshot(record)
+        item_map = load_item_map_all(record)
 
-    def refresh_on_menu_change():
+    def on_focused(snapshot, address):
+        watcher.watch(snapshot, lambda: menu_changed(address))
+
+    def menu_changed(address):
         nonlocal refresh_pending
-        if refresh_pending:
-            return
+        state.mark_dirty(address)
         refresh_pending = True
 
     while True:
-        refreshed = False
-
         # Exit with our parent (the shell service) so we never outlive it.
         if os.getppid() != initial_ppid:
             log("parent gone; exiting")
@@ -2202,14 +2371,6 @@ def run_daemon():
             if not enable_atspi(force=True):
                 force_a11y_enabled()
 
-        if refresh_pending:
-            window = active_window()
-            if is_shell_window(window):
-                refresh_pending = False
-            else:
-                win_key = (window.get("address"), window.get("pid"), window.get("class"))
-                last_window_key = win_key
-                refresh_for(window)
         if sock is None:
             sock = connect_events()
             time.sleep(1)
@@ -2233,11 +2394,8 @@ def run_daemon():
             buffer += data.decode("utf-8", errors="replace")
             while "\n" in buffer:
                 line, buffer = buffer.split("\n", 1)
-                line = line.strip()
-                if not line:
-                    continue
-                if line.startswith("activewindow>>"):
-                    refreshed = True
+                if line.strip() and event_matters(line.strip()):
+                    refresh_pending = True
 
         try:
             request_mtime = REQUEST_FILE.stat().st_mtime if REQUEST_FILE.exists() else 0.0
@@ -2247,17 +2405,9 @@ def run_daemon():
             last_request_mtime = request_mtime
             handle_requests(item_map)
 
-        if refreshed:
-            window = active_window()
-            if is_shell_window(window):
-                log(f"focus -> shell window, keeping '{snapshot['appName']}' menu")
-            else:
-                win_key = (window.get("address"), window.get("pid"), window.get("class"))
-                if win_key == last_window_key and not refresh_pending:
-                    pass
-                else:
-                    last_window_key = win_key
-                    refresh_for(window)
+        if refresh_pending:
+            refresh_pending = False
+            state.refresh(publish=publish, on_focused=on_focused)
 
         # Dispatch pending GIO/D-Bus signal callbacks (menu-change signals).
         # call_sync blocks on the main context, but signal delivery only

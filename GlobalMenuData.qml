@@ -11,14 +11,26 @@ Item {
   id: root
   visible: false
 
-  property string stateDir: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/oma-top-menu"
+  property string stateDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/oma-top-menu"
   property string path: root.stateDir + "/active.json"
   property var status: null
   readonly property string statusMessage: service && service.statusState !== "" ? (service.statusState === "error" ? String(service.statusMessage || "Oma Top Menu: error") : "") : (status && status.state === "error" ? String(status.message || "Oma Top Menu: error") : "")
   // The service streams snapshots (no file watch needed); the file is the fallback.
   property var service: null
   property var fileRecord: null
-  readonly property var record: service && service.record ? service.record : fileRecord
+  property string monitorName: ""
+  readonly property var rawRecord: service && service.record ? service.record : fileRecord
+  // Version 2 records hold one snapshot per monitor; this bar shows its own.
+  // A monitor that is not listed (or an older record) falls back to the focused one.
+  readonly property var record: {
+    var r = rawRecord
+    if (r && r.monitors) {
+      var snap = r.monitors[root.monitorName]
+      if (snap === undefined) snap = r.monitors[r.focused]
+      return snap || null
+    }
+    return r
+  }
   property string lastText: ""
   property string lastStatusText: ""
 

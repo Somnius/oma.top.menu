@@ -65,6 +65,14 @@ BarWidget {
 
   readonly property string appIconUrl: root.iconSource(root.appIcon)
 
+  // This bar's own monitor, found the way Omarchy's workspace widget does it.
+  readonly property var monitor: {
+    var window = root.QsWindow.window
+    var screen = window ? window.screen : null
+    return screen ? Hyprland.monitorFor(screen) : Hyprland.focusedMonitor
+  }
+  readonly property string monitorName: root.monitor ? root.monitor.name : ""
+
   function setOpenIndex(index) {
     var opening = root.openIndex < 0 && index >= 0
     var closing = root.openIndex >= 0 && index < 0
@@ -124,7 +132,10 @@ BarWidget {
     id: dataLoader
     active: true
     source: Qt.resolvedUrl("GlobalMenuData.qml")
-    onLoaded: item.service = Qt.binding(function() { return root.menuService })
+    onLoaded: {
+      item.service = Qt.binding(function() { return root.menuService })
+      item.monitorName = Qt.binding(function() { return root.monitorName })
+    }
   }
 
   Connections {
@@ -160,15 +171,16 @@ BarWidget {
     else root.open()
   }
 
-  // Only the menu strip answers IPC; the options icon stays out of it.
-  Loader {
-    active: !root.optionsRole
-    sourceComponent: IpcHandler {
-      target: "com.lefteros.somnius.oma-top-menu"
-
-      function open(): void { root.broadcast("open") }
-      function close(): void { root.broadcast("close") }
-      function toggle(): void { root.broadcast("toggle") }
+  // IPC (open/close/toggle) arrives through the service; only the menu strip
+  // on the focused monitor answers it.
+  Connections {
+    target: root.menuService
+    ignoreUnknownSignals: true
+    function onIpcRequest(action) {
+      if (root.optionsRole || !root.monitor || !root.monitor.focused) return
+      if (action === "open") root.open()
+      else if (action === "close") root.close()
+      else if (action === "toggle") root.toggle()
     }
   }
 
@@ -178,22 +190,33 @@ BarWidget {
     if (root.optionsRole && optionsLoader.item) optionsLoader.item.closeForPopoutSwitch()
   }
 
+  function openOptions() {
+    root.injectOptions()
+    if (optionsLoader.item) optionsLoader.item.open()
+  }
+
+  // The follow-mouse choice is a widget setting; the service applies it.
+  function syncFollowMouse() {
+    if (root.menuService && typeof root.menuService.setFollowMouse === "function")
+      root.menuService.setFollowMouse(root.setting("followMouse", ""))
+  }
+
   function injectOptions() {
     var p = optionsLoader.item
     if (!p) return
     p.bar = root.bar
-    p.anchorItem = optionsButton
+    p.anchorItem = root.optionsRole ? optionsButton : strip
     p.hostWidget = root
     p.settings = root.settings
     p.menuService = root.menuService
   }
   onBarChanged: root.injectOptions()
-  onSettingsChanged: root.injectOptions()
-  onMenuServiceChanged: root.injectOptions()
+  onSettingsChanged: { root.injectOptions(); root.syncFollowMouse() }
+  onMenuServiceChanged: { root.injectOptions(); root.syncFollowMouse() }
 
   Loader {
     id: optionsLoader
-    active: root.optionsRole
+    active: true
     visible: false
     source: Qt.resolvedUrl("OptionsPanel.qml")
     onLoaded: { root.injectOptions(); Qt.callLater(root.injectOptions) }
@@ -242,6 +265,14 @@ BarWidget {
     id: strip
     visible: !root.optionsRole
     anchors.fill: parent
+
+    // Right-click anywhere on the strip opens the options panel, so a default
+    // install needs only this one bar entry.
+    MouseArea {
+      anchors.fill: parent
+      acceptedButtons: Qt.RightButton
+      onClicked: root.openOptions()
+    }
 
     Row {
       id: stripRow

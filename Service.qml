@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 
 // Owns the single menu bridge daemon (one per shell, not one per screen).
 // Checks python-gobject and AT-SPI first and publishes the result in
@@ -11,10 +12,48 @@ Item {
 
   readonly property string python: "/usr/bin/python3"
   readonly property string bridgePath: String(Qt.resolvedUrl("bin/omarchy-global-menu-bridge")).replace(/^file:\/\//, "")
-  readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/oma-top-menu"
+  readonly property string stateDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/oma-top-menu"
   property int failures: 0
   property double startedAt: 0
   property bool manualRestart: false
+  // Hyprland focus behaviour (0-3), or "" to leave the user's own config alone.
+  // It lives in the widget settings in shell.json, so removing the plugin removes it.
+  property string followMouse: ""
+
+  function setFollowMouse(value) {
+    var v = String(value === undefined || value === null ? "" : value)
+    if (v !== "" && !/^[0-3]$/.test(v)) v = ""
+    if (v === root.followMouse) return
+    root.followMouse = v
+    root.applyFollowMouse()
+  }
+
+  function applyFollowMouse() {
+    if (root.followMouse === "" || followProcess.running) return
+    followProcess.command = ["hyprctl", "eval", "hl.config({ input = { follow_mouse = " + root.followMouse + " } })"]
+    followProcess.running = true
+  }
+
+  Process { id: followProcess }
+
+  // One IPC handler for the whole shell (every monitor's widget would
+  // otherwise register the same target); the focused monitor's strip answers.
+  signal ipcRequest(string action)
+  IpcHandler {
+    target: "com.lefteros.somnius.oma-top-menu"
+
+    function open(): void { root.ipcRequest("open") }
+    function close(): void { root.ipcRequest("close") }
+    function toggle(): void { root.ipcRequest("toggle") }
+  }
+
+  // A Hyprland config reload resets the value, so apply it again.
+  Connections {
+    target: Hyprland
+    function onRawEvent(event) {
+      if (event && String(event.name) === "configreloaded") root.applyFollowMouse()
+    }
+  }
   // Latest menu snapshot, streamed by the daemon; every per-screen widget reads this.
   property var record: null
   property string statusState: ""

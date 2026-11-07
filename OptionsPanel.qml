@@ -19,7 +19,16 @@ Panel {
   property var menuService: null
 
   readonly property var rec: root.menuService && root.menuService.record ? root.menuService.record : null
-  readonly property string helperPath: String(Qt.resolvedUrl("bin/oma-top-menu-hypr-input")).replace(/^file:\/\//, "")
+  readonly property string monitorsText: {
+    if (!root.rec) return "Waiting for a window"
+    if (!root.rec.monitors) return "Showing " + root.rec.appName + " (" + root.rec.source + ")"
+    var lines = []
+    for (var name in root.rec.monitors) {
+      var snap = root.rec.monitors[name]
+      lines.push((name || "screen") + ": " + (snap ? snap.appName + " (" + snap.source + ")" : "no window"))
+    }
+    return lines.join("\n")
+  }
 
   property string followMouse: ""
   property string workspaceSection: ""
@@ -50,20 +59,6 @@ Panel {
     if (root.hostWidget && "settings" in root.hostWidget) root.hostWidget.settings = entry
     if (root.bar && root.bar.shell && typeof root.bar.shell.updateEntryInline === "function")
       root.bar.shell.updateEntryInline(root.moduleName, entry)
-  }
-
-  function applyFollow(value) {
-    if (!/^[0-3]$/.test(String(value))) return
-    root.followMouse = String(value)
-    runner.command = ["hyprctl", "eval", "hl.config({ input = { follow_mouse = " + value + " } })"]
-    root.note = "Applied now. Use Save to keep it after a restart."
-    runner.running = true
-  }
-
-  function saveFollow() {
-    if (!/^[0-3]$/.test(root.followMouse)) return
-    saver.command = ["/usr/bin/python3", root.helperPath, "follow_mouse", root.followMouse]
-    saver.running = true
   }
 
   function moveWorkspaces(section) {
@@ -119,14 +114,6 @@ Panel {
     }
   }
 
-  Process { id: runner }
-
-  Process {
-    id: saver
-    stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.note = text.trim() }
-    stderr: StdioCollector { waitForEnd: true; onStreamFinished: if (text.trim() !== "") root.note = text.trim() }
-  }
-
   Process {
     id: mover
     property string targetSection: ""
@@ -173,14 +160,20 @@ Panel {
           font.pixelSize: Style.font.caption
           text: root.menuService && root.menuService.statusState === "error"
             ? root.menuService.statusMessage
-            : (root.rec ? ("Showing " + root.rec.appName + " (" + root.rec.source + ")") : "Waiting for a window")
+            : root.monitorsText
         }
 
         PanelSectionHeader { text: "Focus behaviour"; foreground: root.barForeground }
         ButtonGroup {
-          options: [{ value: "1", label: "Hover" }, { value: "2", label: "Click" }, { value: "0", label: "Off" }]
-          value: root.followMouse
-          onChanged: function(v) { root.applyFollow(v) }
+          options: [{ value: "system", label: "System" }, { value: "1", label: "Hover" }, { value: "2", label: "Click" }, { value: "0", label: "Off" }]
+          value: root.setting("followMouse", "") === "" ? "system" : String(root.setting("followMouse", ""))
+          onChanged: function(v) {
+            var chosen = v === "system" ? "" : v
+            root.persist({ followMouse: chosen })
+            if (root.menuService && typeof root.menuService.setFollowMouse === "function")
+              root.menuService.setFollowMouse(chosen)
+            root.note = chosen === "" ? "Your own Hyprland setting applies from the next Hyprland reload." : ""
+          }
         }
         Text {
           width: parent.width
@@ -188,12 +181,7 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: "Hover moves focus as the pointer crosses windows, so the menu changes on the way to the bar. Click keeps the menu of the window you clicked."
-        }
-        Button {
-          text: "Save to ~/.config/hypr/input.lua"
-          bordered: true
-          onClicked: root.saveFollow()
+          text: "Hover moves focus as the pointer crosses windows, so a menu changes on the way to the bar. Click keeps the menu of the window you clicked. Kept in this widget's settings and applied by the plugin (nothing is written to your Hyprland files); removing the plugin ends it."
         }
 
         PanelSectionHeader { text: "Workspace numbers"; foreground: root.barForeground }

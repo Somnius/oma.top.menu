@@ -1,0 +1,24 @@
+# Omarchy internals this plugin relies on
+
+Line numbers are for Omarchy 4.5.0-3 (`/usr/share/omarchy/shell`, 2026-11-07) and will drift; the *name* is what to search for. Run `python3 tests/check_shell_api.py` after an Omarchy update: it checks that the Ui files exist and that each pattern below still matches somewhere in the shell source. It cannot detect a changed behaviour, only a missing name.
+
+| What we use | Defined at | Used for | If it changes | Caught by |
+|---|---|---|---|---|
+| `Ui/BarWidget.qml` base (`bar`, `moduleName`, `settings`, `fixedEdge`, `vertical`, `barSize`) | `Ui/BarWidget.qml:19-28` | the widget's base type and injected values | widget fails to load or loses its settings | check (file exists, `property string fixedEdge`) |
+| `fixedEdge` ("start" left section, "end" right section, "center" otherwise) | `Ui/BarWidget.qml:22`, set in `plugins/bar/Bar.qml` (`LeftModules` 2271, `RightModules` 2277, `CenterBox` 2363) | tells the strip (left) from the options icon (anywhere else) | roles swap or both become the strip; not part of Omarchy's documented plugin reference | check (name only); README documents supported placements |
+| `QsWindow.window.screen` + `Hyprland.monitorFor(screen)` | pattern in `plugins/bar/widgets/Workspaces.qml:19-24` | each bar finds its own monitor, to show that monitor's menu | every monitor would show the focused monitor's menu (the code falls back to the focused snapshot) | multi-monitor test with a virtual monitor (manual) |
+| `Hyprland.onRawEvent` (`configreloaded`) | pattern in `Workspaces.qml:198`, `Bar.qml:1667` | re-apply the focus-behaviour setting after a Hyprland reload | the setting would be lost at the next reload | none automated |
+| `bar.shell.serviceFor(id)` | `shell.qml:915`, `services/PluginShellApi.qml:30` | widgets read the service's menu record and call `setFollowMouse` | widgets fall back to reading `active.json` (slower, needs a file watch) | check (name) |
+| `bar.shell.updateEntryInline(moduleName, settings)` | `shell.qml:1107`, `PluginShellApi.qml:62` | the panel saves widget settings; it rewrites **every** entry with this id | settings not saved | check (name) |
+| `bar.requestPopout(owner)` / `releasePopout(owner)` / `activePopout` | `Ui/PluginBarApi.qml:68,72,29`, `Bar.qml:702,711,103` | the menu popup tells the bar it is open, so other popups close | two popups open at once | check (names) |
+| `bar.switchPanelFrom(owner, direction)` | `Ui/PluginBarApi.qml:85` | Tab between panels; used only if present | Tab does not switch panels | check (name); guarded by `typeof` |
+| `WidgetButton` (`hasVisualContent`, `fixedWidth`, `tooltipText`, `pressed`) | `Ui/WidgetButton.qml:30` | the options icon; it draws at opacity 0 unless `hasVisualContent` is true | icon invisible | check (`hasVisualContent`) |
+| `Panel`, `KeyboardPanel`, `PanelKeyCatcher`, `PanelSectionHeader`, `ButtonGroup`, `Button`, `BorderSurface` | `Ui/*.qml` | the options panel and the menu popup | panel or popup fails to load | check (files exist) |
+| `Style.bar.iconSlot`, `Style.font.*`, `Style.space()`, `Color.*` | `Commons/Style.qml:353` and neighbours | sizes and theme colours | wrong sizes or colours | check (some names) |
+| manifest `kinds`, `entryPoints`, `barWidget.defaults`, `barWidget.schema`, `allowMultiple` | `shell.qml:1470-1473`, `PluginRegistry.qml` validation | plugin loading and the settings schema | plugin rejected at load; `omarchy plugin validate` fails | `omarchy plugin validate`, CI manifest check |
+| `omarchy bar move <id> --before <id>` / `--section <s> --index <n>` | `omarchy-bar` | move the workspace numbers (only when the user clicks) | the Workspace control fails; other controls keep working | check (`omarchy bar move --help` runs) |
+| `hyprctl -j monitors/workspaces/clients/activewindow`, `hyprctl eval`, socket2 events | Hyprland | which window each monitor shows; focus behaviour; refresh triggers | menus stop following focus; focus control fails | unit tests with fixtures cover the planning, not Hyprland itself |
+| Hyprland event names (`activewindow`, `focusedmon`, `workspace`, `moveworkspace`, `activespecial`, `openwindow`, `closewindow`, `movewindow`, `monitoradded`, `monitorremoved`, `createworkspace`, `destroyworkspace`, `configreloaded`) | Hyprland wiki, IPC page | when to re-plan | stale menus until the next event | `test_bridge.py::EventTest` |
+| `/usr/bin/python3` with `gi` (Gio, GLib, Atspi 2.0) | system packages | the menu daemon | the bar shows a message and no menus | service check; not automated |
+
+Not relied on: Omarchy's own widgets' private state, `omarchy.*` internals other than the entries above, and any `shell.json` key other than this widget's own entry and, on a click, the position of `omarchy.workspaces`.

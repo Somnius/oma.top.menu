@@ -21,7 +21,8 @@ from pathlib import Path
 
 PLUGIN_ID = "com.lefteros.somnius.oma-top-menu"
 CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config"))
-STATE = Path(os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local/state")) / "omarchy" / "oma-top-menu"
+LEGACY_STATE = Path(os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local/state")) / "omarchy" / "oma-top-menu"
+STATE = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "oma-top-menu"
 SHELL_JSON = CONFIG / "omarchy" / "shell.json"
 HELPER = Path(__file__).resolve().parent / "oma-top-menu-hypr-input"
 
@@ -50,7 +51,7 @@ def main(argv):
         block = "oma-top-menu: begin" in (CONFIG / "hypr" / "input.lua").read_text()
     except OSError:
         pass
-    print(f"input.lua block: {'present' if block else 'none'}; state dir: {'present' if STATE.exists() else 'none'}")
+    print(f"input.lua block (legacy): {'present' if block else 'none'}; state dirs: {'present' if (STATE.exists() or LEGACY_STATE.exists()) else 'none'}")
     if not apply:
         print("dry run; add --apply to clean up")
         return 0
@@ -65,9 +66,10 @@ def main(argv):
         print(f"shell.json cleaned; backup {backup.name}")
     if block and HELPER.exists():
         subprocess.run([sys.executable, str(HELPER), "follow_mouse", "--remove"], check=False)
-    if STATE.exists():
-        shutil.rmtree(STATE, ignore_errors=True)
-        print("state dir removed")
+    for state in (STATE, LEGACY_STATE):
+        if state.exists():
+            shutil.rmtree(state, ignore_errors=True)
+            print(f"removed {state}")
     print("done; now run: omarchy plugin remove " + PLUGIN_ID)
     return 0
 
