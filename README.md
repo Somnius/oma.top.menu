@@ -15,4 +15,5 @@ Inspired by the Global Menu GNOME extension by [Unmade760](https://github.com/Un
 - [ROADMAP.md](ROADMAP.md): phases and status
 - [AGENTS.md](AGENTS.md): working rules for anyone (or any tool) editing this repo
 - [NOTES.md](NOTES.md): credits and loose ends
+- [plugin/](plugin): the plugin source (a patched copy of primo.global-menu)
 - [docs/research-global-menu.md](docs/research-global-menu.md): research findings

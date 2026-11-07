@@ -6,9 +6,9 @@ Updated at the end of every phase. One push per phase.
 |---|---|---|
 | 0 | Research: catalog scan, GNOME extension, primo.global-menu review | done (2026-11-07) |
 | 1 | Re-test primo.global-menu with the system Python | done (2026-11-07), see [phase 1 notes](docs/phase-1-primo-test.md): daemon runs, but only fallback menus in 7 apps; why no real menus is unknown |
-| 1b | Diagnose extraction: `--debug` with a menu-bearing app focused (Lef focuses), LibreOffice a11y tree, install the `environment.d` a11y file; measure AT-SPI cost | todo |
+| 1b | Diagnose extraction | done (2026-11-07), see [diagnosis](docs/phase-1b-diagnosis.md): menus exist in AT-SPI; Floorp works, Kotatogram fixed by a name-match patch in `plugin/`; LibreOffice and cost still open |
 | 2 | With Lef's go-ahead: move workspaces right and add the menu widget (primo id or fork id) on the left in `shell.json`; confirm the layout | todo |
-| 3 | Decide: use primo as is, or fork it as Oma Top Menu (add a shortcut-profile fallback) | todo |
+| 3 | Fork decision: leaning to fork (`plugin/` already patched); add a shortcut-profile fallback for apps without a menu bar | in progress |
 | 4 | Build/fork, package as an Omarchy plugin with the daemon unit installed | todo |
 | 5 | List on plugins.omarchy.org, release | todo |
 
