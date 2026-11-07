@@ -4,15 +4,15 @@
 - Keep ROADMAP.md up to date at the end of every phase, in the same commit as the work.
 - Commit as often as needed to track the work. Push once at the end of each phase.
 - Commit with the repo's git identity as configured. Never override it.
-- Lef allowed a short mention of the tools used (Claude Code, JEV) in README and NOTES. Do not add more than that, no "how it was made" sections.
-- Credit others: the Global Menu GNOME extension by Unmade760 (see NOTES.md), and primo.global-menu if forked.
-- Limit CPU use: nice -n 10 for long jobs, never above 80% of the machine.
-- Do not edit `~/.config/omarchy/shell.json` or install plugins without Lef's go-ahead.
-- Ask first before anything that takes control of the desktop: moving focus, launching or closing apps, switching workspaces.
-- Hyprland here takes Lua dispatch syntax, e.g. `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`.
-- On this machine the shell's plugin hot-reload does not fire (inotify watches are used up), so after copying files into `~/.config/omarchy/plugins/<id>/` run `omarchy restart shell` (tell Lef first) and check there is exactly one bridge process.
-- Do not submit to the Omarchy marketplace (or open any issue on its repo) until Lef says so. Prepare and dry-run only.
-- Test bin/oma-top-menu-hypr-input only with both HOME and XDG_CONFIG_HOME pointed at a temp dir; Lef's shell exports XDG_CONFIG_HOME, so HOME alone still hits the real ~/.config/hypr (this happened once on 2026-11-07, undone).
-- Keep working files (catalog downloads, review evidence, test scripts, screenshots, logs) in the gitignored .work/ folder, not /tmp or a scratchpad: a reboot would lose them.
-- Never create virtual input devices (uinput/evdev) or inject pointer or keyboard events on Lef's machine: on 2026-11-07 Hyprland crashed within seconds of one (cause not proven) and the session was lost. Ask Lef to perform gestures instead.
-- Warn Lef before moving keyboard focus to a test window (his typing lands in it) and restore focus right after; prefer tests that need no focus change.
+- Mention of tools used to build the project stays to one short line in the README credits and NOTES.md. No "how it was made" sections.
+- Credit others: the Global Menu GNOME extension by Unmade760 (see NOTES.md), and primo.global-menu, which this plugin is based on.
+- Limit CPU use: `nice -n 10` for long jobs, never above 80% of the machine.
+- Do not edit the owner's `~/.config/omarchy/shell.json`, install plugins on their machine, or restart their shell without telling them first.
+- Ask first before anything that takes control of the desktop: moving focus, launching or closing apps, switching workspaces. A test window that has keyboard focus receives whatever the owner is typing, so warn first, keep it short, and restore focus right after.
+- Never create virtual input devices (uinput, evdev) or inject pointer or keyboard events to test something. Ask the owner to perform the gesture while a watcher logs state.
+- Hyprland with a Lua config takes Lua dispatchers, for example `hyprctl dispatch 'hl.dsp.focus({ window = "address:0x..." })'`.
+- If the shell's plugin hot-reload does not fire (it relies on inotify watches), run `omarchy restart shell` after copying files into `~/.config/omarchy/plugins/<id>/` and check that exactly one bridge process is running.
+- Do not submit to the Omarchy marketplace, or open any issue on its repository, until the owner says so. Preparing and dry-running is fine.
+- Test `bin/oma-top-menu-hypr-input` only with both `HOME` and `XDG_CONFIG_HOME` pointed at a temp directory (the owner's shell may export `XDG_CONFIG_HOME`).
+- Keep working files (downloads, review evidence, test scripts, screenshots, logs) in the gitignored `.work/` folder, not in `/tmp`, so a reboot does not lose them.
+- Screenshots: capture only the panel or bar region, validate the crop before looking at it, delete full-screen captures right away, and never commit an image that shows anything personal.
