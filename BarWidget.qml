@@ -93,10 +93,16 @@ BarWidget {
 
   onMenubarChanged: root.syncOpenEntry()
 
+  // The service (one per shell) streams the menu snapshots; fall back to the
+  // state file when the shell does not give us a service handle.
+  readonly property var menuService: root.bar && root.bar.shell
+    ? root.bar.shell.serviceFor("com.lefteros.somnius.oma-top-menu") : null
+
   Loader {
     id: dataLoader
     active: true
     source: Qt.resolvedUrl("GlobalMenuData.qml")
+    onLoaded: item.service = Qt.binding(function() { return root.menuService })
   }
 
   Connections {

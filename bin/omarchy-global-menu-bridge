@@ -200,7 +200,12 @@ SHELL_CLASSES = {"org.quickshell", "quickshell"}
 
 def is_shell_window(window):
     window_class = str((window or {}).get("class", "") or "")
-    return window_class in SHELL_CLASSES
+    if window_class not in SHELL_CLASSES:
+        return False
+    # Popups and panels surface untitled; a titled shell toplevel (for example
+    # the Omamail window) is a real app and gets its own menu.
+    title = str((window or {}).get("title", "") or "").strip()
+    return title in ("", "quickshell", "Quickshell")
 
 
 def find_desktop_file(app_id):
@@ -1288,18 +1293,43 @@ class AtspiMenuExtractor:
                 continue
             item_path = base_path + [i]
             submenu = None
+            submenu_path = item_path
             try:
                 child_count = child.get_child_count()
             except Exception:  # noqa: BLE001
                 child_count = 0
+            # GTK/Qt: menu -> popup menu -> items. Prefer an explicit popup.
             for j in range(child_count):
                 try:
                     sub = child.get_child_at_index(j)
                 except Exception:  # noqa: BLE001
                     continue
-                if sub is not None and self._role(sub) in ("ATSPI_ROLE_MENU", "ATSPI_ROLE_POPUP_MENU"):
+                if sub is not None and self._role(sub) == "ATSPI_ROLE_POPUP_MENU":
                     submenu = sub
+                    submenu_path = item_path + [j]
                     break
+            if submenu is None and role == "ATSPI_ROLE_MENU" and child_count:
+                # Firefox-style: the menu's own children are its items.
+                direct = ("ATSPI_ROLE_MENU_ITEM", "ATSPI_ROLE_CHECK_MENU_ITEM",
+                          "ATSPI_ROLE_RADIO_MENU_ITEM", "ATSPI_ROLE_SEPARATOR", "ATSPI_ROLE_MENU")
+                for j in range(child_count):
+                    try:
+                        sub = child.get_child_at_index(j)
+                    except Exception:  # noqa: BLE001
+                        continue
+                    if sub is not None and self._role(sub) in direct:
+                        submenu = child
+                        break
+            elif submenu is None:
+                for j in range(child_count):
+                    try:
+                        sub = child.get_child_at_index(j)
+                    except Exception:  # noqa: BLE001
+                        continue
+                    if sub is not None and self._role(sub) == "ATSPI_ROLE_MENU":
+                        submenu = sub
+                        submenu_path = item_path + [j]
+                        break
             if submenu is not None:
                 items_out.append(
                     {
@@ -1310,7 +1340,7 @@ class AtspiMenuExtractor:
                         "icon": "",
                         "checkState": self._checkstate(child),
                         "action": None,
-                        "items": self._extract_children(submenu, prefix, item_path + [j], depth + 1),
+                        "items": self._extract_children(submenu, prefix, submenu_path, depth + 1),
                     }
                 )
                 continue
@@ -1385,6 +1415,8 @@ class SnapshotBuilder:
         self.app_name = (self.desktop or {}).get("name") or self.app_id or "Desktop"
         self.icon = (self.desktop or {}).get("icon") or ""
         self.app_exec = clean_exec((self.desktop or {}).get("exec") or "")
+        if self.app_id in SHELL_CLASSES and self.title.strip():
+            self.app_name = self.title.strip()
 
     def nid(self, prefix):
         self.counter += 1
@@ -1792,9 +1824,17 @@ def write_private_text(path, text):
     os.replace(tmp, path)
 
 
+STREAM = False
+
+
 def write_snapshot(snapshot):
     ensure_private_state()
-    write_private_text(ACTIVE_FILE, json.dumps(snapshot, ensure_ascii=False))
+    text = json.dumps(snapshot, ensure_ascii=False)
+    write_private_text(ACTIVE_FILE, text)
+    if STREAM:
+        # One snapshot per line on stdout: the shell service reads this
+        # directly, so the bar does not depend on a file watch.
+        print(text, flush=True)
 
 
 def load_item_map(snapshot):
@@ -2121,7 +2161,16 @@ def run_daemon():
     def refresh_for(window):
         nonlocal snapshot, item_map, refresh_pending
         refresh_pending = False
-        snapshot = SnapshotBuilder(window).build()
+        built = SnapshotBuilder(window).build()
+        # Focus may have moved while the menu was being extracted (some apps
+        # take seconds): drop the stale result and rebuild for the new window.
+        current = active_window()
+        if (current.get("address"), current.get("pid"), current.get("class")) != (
+            window.get("address"), window.get("pid"), window.get("class")
+        ) and not is_shell_window(current):
+            refresh_pending = True
+            return
+        snapshot = built
         write_snapshot(snapshot)
         item_map = load_item_map(snapshot)
         watcher.watch(snapshot, lambda: refresh_on_menu_change())
@@ -2226,9 +2275,12 @@ def main(argv=None):
     activate.add_argument("--action-json", default=None, help="full action object to execute (preferred)")
     parser.add_argument("--once", action="store_true", help="write one snapshot and exit")
     parser.add_argument("--debug", action="store_true", help="verbose stderr logging")
+    parser.add_argument("--stream", action="store_true", help="also print each snapshot as one JSON line on stdout")
 
     args = parser.parse_args(argv)
     DEBUG = args.debug
+    global STREAM  # noqa: PLW0603
+    STREAM = args.stream
     # Defense in depth: every file this process (and its children) creates is
     # owner-only by default, so even a future code path that forgets an explicit
     # mode still lands at 0600 instead of 0644 under a 022 umask.

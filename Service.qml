@@ -13,8 +13,14 @@ Item {
   readonly property string bridgePath: String(Qt.resolvedUrl("bin/omarchy-global-menu-bridge")).replace(/^file:\/\//, "")
   readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/oma-top-menu"
   property int failures: 0
+  // Latest menu snapshot, streamed by the daemon; every per-screen widget reads this.
+  property var record: null
+  property string statusState: ""
+  property string statusMessage: ""
 
   function writeStatus(state, message) {
+    root.statusState = state
+    root.statusMessage = message
     statusFile.setText(JSON.stringify({ state: state, message: message }))
   }
 
@@ -41,7 +47,15 @@ Item {
 
   Process {
     id: daemon
-    command: [root.python, root.bridgePath, "run"]
+    command: [root.python, root.bridgePath, "--stream", "run"]
+    stdout: SplitParser {
+      onRead: function(line) {
+        try {
+          var parsed = JSON.parse(line)
+          if (parsed && typeof parsed === "object") root.record = parsed
+        } catch (e) {}
+      }
+    }
     onExited: function(exitCode) {
       if (exitCode === 0) return
       root.failures += 1

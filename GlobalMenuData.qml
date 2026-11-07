@@ -14,8 +14,11 @@ Item {
   property string stateDir: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/omarchy/oma-top-menu"
   property string path: root.stateDir + "/active.json"
   property var status: null
-  readonly property string statusMessage: status && status.state === "error" ? String(status.message || "Oma Top Menu: error") : ""
-  property var record: null
+  readonly property string statusMessage: service && service.statusState !== "" ? (service.statusState === "error" ? String(service.statusMessage || "Oma Top Menu: error") : "") : (status && status.state === "error" ? String(status.message || "Oma Top Menu: error") : "")
+  // The service streams snapshots (no file watch needed); the file is the fallback.
+  property var service: null
+  property var fileRecord: null
+  readonly property var record: service && service.record ? service.record : fileRecord
   property string lastText: ""
   property string lastStatusText: ""
 
@@ -33,7 +36,7 @@ Item {
     id: activeFile
     onFileChanged: reload()
     onLoaded: root.parse(text())
-    onLoadFailed: { root.lastText = ""; root.record = null }
+    onLoadFailed: { root.lastText = ""; root.fileRecord = null }
   }
 
   FileView {
@@ -65,10 +68,10 @@ Item {
     root.lastText = String(content || "")
     try {
       var parsed = JSON.parse(String(content || ""))
-      root.record = parsed && typeof parsed === "object" ? parsed : null
+      root.fileRecord = parsed && typeof parsed === "object" ? parsed : null
     } catch (e) {
       console.warn("oma-top-menu", "Ignoring bad menu record", root.path, e)
-      root.record = null
+      root.fileRecord = null
     }
   }
 }
