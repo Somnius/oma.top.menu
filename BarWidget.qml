@@ -283,6 +283,7 @@ BarWidget {
 
     property bool moved: false
     property bool blocked: false
+    property bool placedOnce: false
     property real pressX: 0
     property real pressY: 0
 
@@ -290,8 +291,8 @@ BarWidget {
     z: 100000
     // Only while the widget is really shown in a slot: a pooled (hidden) widget
     // has no place on the bar and must not leave a dead area at the corner.
-    readonly property real wantW: Math.max(root.width, root.implicitWidth, root.parent ? root.parent.width : 0)
-    readonly property real wantH: Math.max(root.height, root.implicitHeight, root.parent ? root.parent.height : 0)
+    readonly property real wantW: Math.max(root.width, root.implicitWidth)
+    readonly property real wantH: Math.max(root.height, root.implicitHeight)
     enabled: root.locked && root.slotted && root.barWindow !== null && parent !== null && root.visible && wantW > 0 && wantH > 0
     visible: enabled
     acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -313,7 +314,10 @@ BarWidget {
       if (shield.y !== p.y) shield.y = p.y
       if (shield.width !== w) shield.width = w
       if (shield.height !== h) shield.height = h
-      if (changed) console.warn("oma-top-menu lock: shield rect", p.x, p.y, w, h, "(widget", root.width, "x", root.height, "implicit", root.implicitWidth, ")")
+      if (changed && !shield.placedOnce) {
+        shield.placedOnce = true
+        console.warn("oma-top-menu lock: shield rect", p.x, p.y, w, h)
+      }
     }
 
     Timer {
@@ -325,7 +329,7 @@ BarWidget {
     }
 
     onEnabledChanged: {
-      if (enabled) { sync(); console.warn("oma-top-menu lock: shield on") }
+      if (enabled) { placedOnce = false; sync(); console.warn("oma-top-menu lock: shield on") }
       else { root.shieldHover = -1; blocked = false; console.warn("oma-top-menu lock: shield off") }
     }
 
@@ -347,6 +351,7 @@ BarWidget {
 
     HoverHandler {
       enabled: shield.enabled
+      cursorShape: shield.blocked ? Qt.ForbiddenCursor : (root.shieldHover >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor)
       onPointChanged: shield.updateHover(point.position.x, point.position.y)
       onHoveredChanged: if (!hovered) root.shieldHover = -1
     }
@@ -355,6 +360,7 @@ BarWidget {
     Connections {
       target: root
       function onImplicitWidthChanged() { if (shield.enabled) shield.sync() }
+      function onImplicitHeightChanged() { if (shield.enabled) shield.sync() }
     }
 
     onPositionChanged: function(mouse) {
