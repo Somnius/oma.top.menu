@@ -141,3 +141,10 @@ class StaticTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoTmpFallbackTest(unittest.TestCase):
+    def test_qml_never_falls_back_to_tmp(self):
+        root = Path(__file__).resolve().parent.parent
+        for qml in root.glob("*.qml"):
+            self.assertNotIn('"/tmp', qml.read_text(), f"{qml.name} must not use a /tmp fallback")

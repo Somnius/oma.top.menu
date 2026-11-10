@@ -11,8 +11,8 @@ Item {
   id: root
   visible: false
 
-  property string stateDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/oma-top-menu"
-  property string path: root.stateDir + "/active.json"
+  property string stateDir: Quickshell.env("XDG_RUNTIME_DIR") ? Quickshell.env("XDG_RUNTIME_DIR") + "/oma-top-menu" : ""
+  property string path: root.stateDir !== "" ? root.stateDir + "/active.json" : ""
   property var status: null
   readonly property string statusMessage: service && service.statusState !== "" ? (service.statusState === "error" ? String(service.statusMessage || "Oma Top Menu: error") : "") : (status && status.state === "error" ? String(status.message || "Oma Top Menu: error") : "")
   // The service streams snapshots (no file watch needed); the file is the fallback.
@@ -53,7 +53,7 @@ Item {
 
   FileView {
     id: statusView
-    path: root.stateDir + "/status.json"
+    path: root.stateDir !== "" ? root.stateDir + "/status.json" : ""
     watchChanges: true
     printErrors: false
     onFileChanged: reload()

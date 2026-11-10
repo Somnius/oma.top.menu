@@ -13,7 +13,9 @@ Item {
 
   readonly property string python: "/usr/bin/python3"
   readonly property string bridgePath: String(Qt.resolvedUrl("bin/omarchy-global-menu-bridge")).replace(/^file:\/\//, "")
-  readonly property string stateDir: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/oma-top-menu"
+  // Only under the user's private runtime directory; never a shared /tmp fallback.
+  readonly property string runtimeDir: Quickshell.env("XDG_RUNTIME_DIR") || ""
+  readonly property string stateDir: root.runtimeDir !== "" ? root.runtimeDir + "/oma-top-menu" : ""
   Translations { id: strings; directory: Qt.resolvedUrl("i18n") }
 
   property int failures: 0
@@ -75,6 +77,7 @@ Item {
   function writeStatus(state, message) {
     root.statusState = state
     root.statusMessage = message
+    if (root.stateDir === "") return
     statusFile.setText(JSON.stringify({ state: state, message: message }))
   }
 
@@ -85,7 +88,13 @@ Item {
     restartTimer.restart()
   }
 
-  Component.onCompleted: prepare.running = true
+  Component.onCompleted: {
+    if (root.stateDir === "") {
+      root.writeStatus("error", strings.t("error.runtime", "Oma Top Menu needs XDG_RUNTIME_DIR to be set"))
+      return
+    }
+    prepare.running = true
+  }
 
   Process {
     id: prepare
@@ -140,7 +149,7 @@ Item {
 
   FileView {
     id: statusFile
-    path: root.stateDir + "/status.json"
+    path: root.stateDir !== "" ? root.stateDir + "/status.json" : ""
     atomicWrites: true
     printErrors: false
   }
