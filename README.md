@@ -11,7 +11,7 @@ Plugin id: `com.lefteros.somnius.oma-top-menu` (codename `oma.top.menu`). Status
 ![PyGObject](https://img.shields.io/badge/PyGObject-AT--SPI-4A86CF)
 ![Hyprland](https://img.shields.io/badge/Hyprland-compositor-58E1FF)
 ![Omarchy](https://img.shields.io/badge/Omarchy-plugin-7aa2f7)
-![License](https://img.shields.io/badge/license-GPL--2.0-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 ![Floorp](docs/screenshots/bar-floorp.png)
 ![Kotatogram](docs/screenshots/bar-kotatogram.png)
@@ -89,12 +89,12 @@ Tested on Omarchy 4.5.0-3 with Hyprland 0.56.2. See [docs/compatibility.md](docs
 - Apps with no menu bar (terminals, many GTK4 apps) get the generic menu.
 
 ## Credits
-Based on [primo.global-menu](https://github.com/PrimoGameStudio/primo.global-menu) by PrimoGameStudio (GPL-2.0). Inspired by the Global Menu GNOME extension by [Unmade760](https://github.com/Unmade760/orbit-global-menu).
+Based on [primo.global-menu](https://github.com/PrimoGameStudio/primo.global-menu) by PrimoGameStudio (MIT). Inspired by the Global Menu GNOME extension by [Unmade760](https://github.com/Unmade760/orbit-global-menu).
 
 Built with Claude Code; JEV (TypeSafe) was used to classify the marketplace catalog.
 
 ## License
-GPL-2.0, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). It keeps the copyright line of PrimoGameStudio, whose code it is based on.
 
 ## Docs
 [SPECS.md](SPECS.md), [ROADMAP.md](ROADMAP.md), [AGENTS.md](AGENTS.md), [NOTES.md](NOTES.md), [docs/moving-the-menu.md](docs/moving-the-menu.md), [docs/actions.md](docs/actions.md), [docs/internals.md](docs/internals.md), [docs/compatibility.md](docs/compatibility.md), [docs/](docs).

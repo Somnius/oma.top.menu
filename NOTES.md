@@ -14,7 +14,7 @@ Keep this credit in the README and in any release notes or marketplace listing.
 ## Later
 - README tech-stack pills: Lef will supply them. Add them when they arrive. Tracked in ROADMAP.md.
 - primo.global-menu (PrimoGameStudio) is the closest existing Omarchy plugin. Credit it too: we fork it.
-- Licence: primo's repo ships the GPL-2.0 text (GitHub also reports GPL-2.0) although its manifest and the marketplace catalog say MIT. Our fork is a derivative, so the repo is GPL-2.0 (`manifest.json` says `GPL-2.0-only`; primo's source files carry no version header, so "only" is the conservative reading). Nothing from the GPL-3.0 GNOME extension is used, so there is no licence mixing to manage.
+- Licence: MIT. Primo's repo first shipped a GPL-2.0 LICENSE file by mistake; its maintainer confirmed in primo.global-menu issue #2 (2026-11-19) that it is MIT and replaced the file (commit 72c97a2). Our `LICENSE` is MIT with both copyright lines. Earlier docs and commits from 2026-11-07 say GPL-2.0; that was before the fix. Nothing from the GPL-3.0 GNOME extension is used, so there is no licence mixing to manage.
 
 ## Tools
 Built with Claude Code. JEV (TypeSafe) was used to classify the marketplace catalog; Lef OK'd mentioning both (2026-11-07).

@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Oma Top Menu, modified from primo.global-menu (GPL-2.0), 2026-11-07: renamed state
+// Oma Top Menu, modified from primo.global-menu (PrimoGameStudio, MIT), 2026-11-07: renamed state
 // directory and a status.json reader.
 // Watches the bridge's snapshot of the focused window's menu. The daemon
 // owns the file; this component only discovers and parses it, so any record

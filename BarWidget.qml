@@ -5,7 +5,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Oma Top Menu, modified from primo.global-menu (GPL-2.0), 2026-11-07: the bridge
+// Oma Top Menu, modified from primo.global-menu (PrimoGameStudio, MIT), 2026-11-07: the bridge
 // is run by Service.qml and called through /usr/bin/python3.
 // macOS-style app menu bar: shows the focused window's menu strip (from the
 // omarchy-global-menu-bridge snapshot) in the bar, with click-to-open popups

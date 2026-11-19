@@ -2,7 +2,7 @@
 """omarchy-global-menu-bridge — focused-app menus for the omarchy bar.
 
 Oma Top Menu (com.lefteros.somnius.oma-top-menu) is a modified version of
-primo.global-menu v1.1.0 (PrimoGameStudio, GPL-2.0). Changes, 2026-11-07:
+primo.global-menu v1.1.0 (PrimoGameStudio, MIT). Changes, 2026-11-07:
 the state directory and config file are renamed so both plugins can coexist,
 AT-SPI menus are also matched by application name when the window pid differs
 (sandboxed apps), the daemon takes a single-instance lock before touching the

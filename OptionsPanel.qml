@@ -307,7 +307,7 @@ Panel {
           color: Qt.darker(root.barForeground, 1.3)
           font.family: root.bar ? root.bar.fontFamily : Style.font.family
           font.pixelSize: Style.font.caption
-          text: strings.t("about.credit", "Oma Top Menu, made by Lef (Somnius). Free software, GPL-2.0.")
+          text: strings.t("about.credit", "Oma Top Menu, made by Lef (Somnius). Free software, MIT.")
         }
         Button {
           text: strings.t("about.github", "GitHub: Somnius/oma.top.menu")

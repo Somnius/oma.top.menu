@@ -24,7 +24,7 @@ Updated at the end of every phase. One push per phase.
 - [ ] Marketplace submission only when Lef says so (he wants it polished first)
 - [ ] Ask Lef before moving focus, launching apps or other desktop control
 - [ ] README tech-stack pills (Lef supplies them)
-- [x] Licence: root is GPL-2.0 because primo's repo ships GPL-2.0 (its catalog entry says MIT)
+- [x] Licence: MIT (primo's maintainer confirmed MIT on 2026-11-19 after the GPL-2.0 file mix-up; root LICENSE keeps primo's copyright line)
 - [x] GNOME extension: inspiration only, no code or data copied, so its GPL-3.0 does not apply (Lef, 2026-11-07)
 - [ ] Credit primo.global-menu (PrimoGameStudio) if we fork it
 - [ ] Keep the credit to Unmade760 in the README and listing

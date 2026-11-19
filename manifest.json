@@ -4,7 +4,7 @@
   "name": "Oma Top Menu",
   "version": "0.1.0",
   "author": "Lef",
-  "license": "GPL-2.0-only",
+  "license": "MIT",
   "description": "The focused app's menu (File, Edit, View...) on the left of the Omarchy top bar.",
   "kinds": [
     "service",
