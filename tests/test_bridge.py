@@ -310,6 +310,9 @@ class SanitizeTest(unittest.TestCase):
         self.assertEqual(bridge.clean_menu_label("Open\tCtrl+O"), "Open")
         self.assertEqual(len(bridge.clean_menu_label("x" * 5000)), bridge.MAX_LABEL)
         self.assertEqual(bridge.clean_menu_label(None), "")
+        self.assertEqual(bridge.clean_menu_label("_File"), "File")
+        self.assertEqual(bridge.clean_menu_label("Save __As"), "Save _As")
+        self.assertEqual(bridge.clean_menu_label("_Open\tCtrl+O"), "Open")
 
     def test_window_title_and_app_name_are_bounded(self):
         b = bridge.SnapshotBuilder({"class": "app", "title": "t" * 5000, "address": "0x1", "pid": 1})
