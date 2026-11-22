@@ -377,10 +377,14 @@ def bound_snapshot(snapshot):
 
 
 def clean_menu_label(label):
-    """Strip Tab-separated accelerator/hint suffixes GTK apps embed in labels."""
+    """Strip Tab-separated accelerator/hint suffixes GTK apps embed in labels,
+    and the mnemonic underscores of GMenu/DBusMenu labels ("_File" -> "File",
+    "__" -> a literal "_")."""
     if not label:
         return ""
-    return sanitize_text(str(label).split("\t")[0])
+    text = str(label).split("\t")[0]
+    text = re.sub(r"_(.)", r"\1", text, flags=re.S)
+    return sanitize_text(text)
 
 
 # ---------------------------------------------------------------------------
@@ -1000,8 +1004,10 @@ class DbusMenuExtractor:
     def discover(self):
         Gio, _ = _gio_import()
         conn = _bus()
-        self._walk_budget = 40
         for name in get_responsive_names(self.pid):
+            # Per-name budget: an ancestor with a large tree (the systemd user
+            # manager, when the app runs in a systemd scope) must not use it up.
+            self._walk_budget = 40
             for path in DBUSMENU_PATHS:
                 xml = _introspect(conn, name, path)
                 if xml and "com.canonical.dbusmenu" in xml:
