@@ -1000,8 +1000,10 @@ class DbusMenuExtractor:
     def discover(self):
         Gio, _ = _gio_import()
         conn = _bus()
-        self._walk_budget = 40
         for name in get_responsive_names(self.pid):
+            # Per-name budget: an ancestor with a large tree (the systemd user
+            # manager, when the app runs in a systemd scope) must not use it up.
+            self._walk_budget = 40
             for path in DBUSMENU_PATHS:
                 xml = _introspect(conn, name, path)
                 if xml and "com.canonical.dbusmenu" in xml:
